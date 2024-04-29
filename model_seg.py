@@ -178,7 +178,7 @@ class Model(nn.Module):
         xyz3, feature3 = self.tf2(xyz1, feature2)
         feature3 = feature3.transpose(2, 1)
 
-        concat_feature = torch.cat([feature1, feature2, feature3], dim=1)
+        concat_feature = torch.cat([feature1, feature2, feature3], dim=2)
         concat_feature = concat_feature.transpose(2, 1)
         feat_conv = self.conv_raise(concat_feature)
 
