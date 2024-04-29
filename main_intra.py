@@ -365,7 +365,7 @@ if __name__ == "__main__":
                         help='evaluate the model')
     parser.add_argument('--use_norm', type=bool, default=True,
                         help='Whether to use norm')
-    parser.add_argument('--cls_state', type=bool, default=True,
+    parser.add_argument('--cls_state', type=bool, default=False,
                         help='Seg or Cls')
     parser.add_argument('--num_points', type=int, default=1024,
                         help='num of points to use')
