@@ -156,12 +156,8 @@ def train(args, io, split, num_class=2):
                 writer.add_scalar(tag='dice_V', step=epoch, value=dice_V)
 
                 # validation
-                best_V_acc, best_A_acc, best_f1_value, best_test_acc, best_test_bal_acc = val(test_loader, num_class,
-                                                                                            model, device, epoch,
-                                                                                            best_V_acc, best_A_acc,
-                                                                                            best_f1_value, best_test_acc,
-                                                                                            best_test_bal_acc, writer)
-
+                best_V_IoU, best_A_IoU, best_V_Dice, best_A_dice = val_seg(test_loader, model, device, epoch, best_V_IoU, best_A_IoU, best_V_Dice, best_A_dice, writer)
+                
     # once the epochs are completed
     io.cprint('Split %d ------>> best f1 score: %.6f, best_V_acc: %.6f, best_A_acc: %.6f' % (split,
                                                                                              best_f1_value,
