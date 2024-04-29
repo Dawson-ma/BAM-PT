@@ -137,9 +137,9 @@ class Model(nn.Module):
 
         # transformer layer
         self.tf1 = trans_block(3, 64, n_samples=512, K=args.num_K[0], dim_k=args.dim_k, heads=args.head, ch_raise=64)
-        self.tf2 = trans_block(64, 64, n_samples=128, K=args.num_K[1], dim_k=args.dim_k, heads=args.head, ch_raise=256)
-        self.tf3 = trans_block(64, 128, n_samples=128, K=args.num_K[1], dim_k=args.dim_k, heads=args.head, ch_raise=256)
-        self.tf4 = trans_block(1024, 1024, n_samples=128, K=args.num_K[1], dim_k=args.dim_k, heads=args.head, ch_raise=256)
+        self.tf2 = trans_block(64, 64, n_samples=128, K=args.num_K[1], dim_k=args.dim_k, heads=args.head, ch_raise=64)
+        self.tf3 = trans_block(64, 128, n_samples=128, K=args.num_K[1], dim_k=args.dim_k, heads=args.head, ch_raise=128)
+        self.tf4 = trans_block(1024, 1024, n_samples=128, K=args.num_K[1], dim_k=args.dim_k, heads=args.head, ch_raise=1024)
 
         # multi-graph attention
         self.attn = MGR(1024, 1024, dim_k=args.dim_k, heads=args.head)
@@ -173,7 +173,7 @@ class Model(nn.Module):
         feature1 = feature1.transpose(2, 1)
         xyz2, feature2 = self.tf2(xyz1, feature1)
         feature2 = feature1.transpose(2, 1)
-        xyz3, feature3 = self.tf2(xyz1, feature2)
+        xyz3, feature3 = self.tf2(xyz2, feature2)
         feature3 = feature1.transpose(2, 1)
 
         concat_feature = torch.cat([feature1, feature2, feature3], dim=1)
