@@ -9,7 +9,7 @@ from natsort import natsorted
 
 #BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/IntrA3D/")
 #BASE = "/content/drive/MyDrive/cse252D_team_8/Datasets/IntrA"
-BASE = "3d_data/datasets/IntrA/"
+BASE = "/3d_data/datasets/IntrA/"
 
 
 class Intra3D(Dataset):
