@@ -170,13 +170,12 @@ class Model(nn.Module):
             feature = x[..., 3:]
 
         xyz1, feature1 = self.tf1(xyz, feature)
-        print(xyz1.size(), feature1.size())
         feature1 = feature1.transpose(2, 1)
         xyz2, feature2 = self.tf2(xyz1, feature1)
         feature2 = feature2.transpose(2, 1)
-        print(xyz2.size(), feature2.size())
         xyz3, feature3 = self.tf2(xyz1, feature2)
         feature3 = feature3.transpose(2, 1)
+        print(feature1.size(), feature2.size(), feature3.size())
 
         concat_feature = torch.cat([feature1, feature2, feature3], dim=2)
         concat_feature = concat_feature.transpose(2, 1)
