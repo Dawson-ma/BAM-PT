@@ -8,7 +8,7 @@ import sys
 from intra3d import Intra3D
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from torch.utils.data import DataLoader
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, jaccard_score
 from tqdm import tqdm
 from visualdl import LogWriter
 from util import IOStream, cal_loss
@@ -102,12 +102,28 @@ def train(args, io, split, num_class=2):
             train_true = np.concatenate(train_true)
             train_pred = np.concatenate(train_pred)
             epoch_loss = train_loss * 1.0 / count
-            train_acc = accuracy_score(train_true, train_pred)
-            train_bal_acc = balanced_accuracy_score(train_true, train_pred)
-            io.cprint('[Train %d, loss: %.6f, train acc: %.6f, balanced train acc: %.6f]' % (epoch,
-                                                                                             epoch_loss,
-                                                                                             train_acc,
-                                                                                             train_bal_acc))
+
+            if args.cls_state:
+                train_acc = accuracy_score(train_true, train_pred)
+                train_bal_acc = balanced_accuracy_score(train_true, train_pred)
+                io.cprint('[Train %d, loss: %.6f, train acc: %.6f, balanced train acc: %.6f]' % (epoch,
+                                                                                                epoch_loss,
+                                                                                                train_acc,
+                                                                                                train_bal_acc))
+            else:
+                mean_IoU_A = jaccard_score(train_true, train_pred)
+                mean_IoU_V = jaccard_score((~train_true.astype(bool)).astype(int), (~train_pred.astype(bool)).astype(int))
+
+                dice_A = (train_true * train_pred).sum() / (train_true[train_true == 1].sum() + train_pred[train_pred == 1].sum())
+                dice_V = (~train_true.astype(bool) & ~train_pred.astype(bool)).sum() / ((~train_true.astype(bool).sum() +  ~train_pred.astype(bool).sum()))
+
+                io.cprint('[Train %d, loss: %.6f, mean IoU A: %.6f, mean IoU V: %.6f, dice A: %.6f, dice V: %.6f]' % (epoch,
+                                                                                                                        epoch_loss,
+                                                                                                                        mean_IoU_A,
+                                                                                                                        mean_IoU_V,
+                                                                                                                        dice_A,
+                                                                                                                        dice_V))
+
             if args.scheduler == 'cos':
                 scheduler.step()
             elif args.scheduler == 'step':
@@ -118,16 +134,33 @@ def train(args, io, split, num_class=2):
                         param_group['lr'] = 1e-5
 
             # add to logger
-            writer.add_scalar(tag='train_loss', step=epoch, value=epoch_loss)
-            writer.add_scalar(tag='train_acc', step=epoch, value=train_acc)
-            writer.add_scalar(tag='train_bal_acc', step=epoch, value=train_bal_acc)
 
-            # validation
-            best_V_acc, best_A_acc, best_f1_value, best_test_acc, best_test_bal_acc = val(test_loader, num_class,
-                                                                                          model, device, epoch,
-                                                                                          best_V_acc, best_A_acc,
-                                                                                          best_f1_value, best_test_acc,
-                                                                                          best_test_bal_acc, writer)
+            if args.cls_state:
+                writer.add_scalar(tag='train_loss', step=epoch, value=epoch_loss)
+                writer.add_scalar(tag='train_acc', step=epoch, value=train_acc)
+                writer.add_scalar(tag='train_bal_acc', step=epoch, value=train_bal_acc)
+
+                
+                # validation
+                best_V_acc, best_A_acc, best_f1_value, best_test_acc, best_test_bal_acc = val(test_loader, num_class,
+                                                                                            model, device, epoch,
+                                                                                            best_V_acc, best_A_acc,
+                                                                                            best_f1_value, best_test_acc,
+                                                                                            best_test_bal_acc, writer)
+
+            else:
+                writer.add_scalar(tag='train_loss', step=epoch, value=epoch_loss)
+                writer.add_scalar(tag='mean_IoU_A', step=epoch, value=mean_IoU_A)
+                writer.add_scalar(tag='mean_IoU_V', step=epoch, value=mean_IoU_V)
+                writer.add_scalar(tag='dice_A', step=epoch, value=dice_A)
+                writer.add_scalar(tag='dice_V', step=epoch, value=dice_V)
+
+                # validation
+                best_V_acc, best_A_acc, best_f1_value, best_test_acc, best_test_bal_acc = val(test_loader, num_class,
+                                                                                            model, device, epoch,
+                                                                                            best_V_acc, best_A_acc,
+                                                                                            best_f1_value, best_test_acc,
+                                                                                            best_test_bal_acc, writer)
 
     # once the epochs are completed
     io.cprint('Split %d ------>> best f1 score: %.6f, best_V_acc: %.6f, best_A_acc: %.6f' % (split,
@@ -187,6 +220,50 @@ def val(test_loader, num_class, model, device, epoch, best_V_acc,
     logger.add_scalar(tag='f1', step=epoch, value=f1_value)
 
     return best_V_acc, best_A_acc, best_f1_value, best_test_acc, best_test_bal_acc
+
+
+def val_seg(test_loader, model, device, epoch, best_V_IoU, best_A_IoU, best_V_Dice, best_A_dice, logger):
+    test_pred = []
+    test_true = []
+
+    model.eval()
+    with torch.no_grad():
+        for batch_data in tqdm(test_loader, total=len(test_loader)):
+            data, label = batch_data
+            data, label = data.to(device), label.to(device).squeeze()
+
+            logits = model(data)
+            preds = logits.max(dim=1)[1]
+            test_true.append(label.cpu().numpy())
+            test_pred.append(preds.detach().cpu().numpy())
+
+    test_true = np.concatenate(test_true)
+    test_pred = np.concatenate(test_pred)
+    mean_IoU_A = jaccard_score(test_true, test_pred)
+    mean_IoU_V = jaccard_score((~test_true.astype(bool)).astype(int), (~test_pred.astype(bool)).astype(int))
+
+    dice_A = (test_true * test_pred).sum() / (test_true[test_true == 1].sum() + test_pred[test_pred == 1].sum())
+    dice_V = (~test_true.astype(bool) & ~test_pred.astype(bool)).sum() / ((~test_true.astype(bool).sum() +  ~test_pred.astype(bool).sum()))
+    if mean_IoU_V > best_V_IoU:
+        best_V_IoU = mean_IoU_V
+        torch.save(model.state_dict(), 'checkpoints/%s/models/model_split_%d_v_iou.pth' % (args.exp_name, split))
+    if mean_IoU_A > best_A_IoU:
+        best_A_IoU = mean_IoU_A
+    if dice_V > best_V_Dice:
+        best_V_Dice = dice_V
+    if dice_A > best_A_dice:
+        best_A_dice = dice_A
+
+
+    io.cprint('[Test %d, mean IoU A: %.6f, mean IoU V: %.6f, dice A: %.6f, dice V: %.6f]' % (
+        epoch, mean_IoU_A, mean_IoU_V, dice_A, dice_V))
+    logger.add_scalar(tag='mean_IoU_A', step=epoch, value=mean_IoU_A)
+    logger.add_scalar(tag='mean_IoU_V', step=epoch, value=mean_IoU_V)
+    logger.add_scalar(tag='dice_A', step=epoch, value=dice_A)
+    logger.add_scalar(tag='dice_V', step=epoch, value=dice_V)
+
+    
+    return best_V_IoU, best_A_IoU, best_V_Dice, best_A_dice
 
 
 def test(args, io, split, num_class=2):
