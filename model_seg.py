@@ -136,10 +136,10 @@ class Model(nn.Module):
         self.use_norm = args.use_norm
 
         # transformer layer
-        self.tf1 = trans_block(3, 64, n_samples=512, K=args.num_K[0], dim_k=args.dim_k, heads=args.head, ch_raise=64)
-        self.tf2 = trans_block(64, 64, n_samples=128, K=args.num_K[1], dim_k=args.dim_k, heads=args.head, ch_raise=64)
-        self.tf3 = trans_block(64, 128, n_samples=128, K=args.num_K[1], dim_k=args.dim_k, heads=args.head, ch_raise=128)
-        self.tf4 = trans_block(1024, 1024, n_samples=128, K=args.num_K[1], dim_k=args.dim_k, heads=args.head, ch_raise=1024)
+        self.tf1 = trans_block(3, 64, n_samples=1024, K=args.num_K[0], dim_k=args.dim_k, heads=args.head, ch_raise=64)
+        self.tf2 = trans_block(64, 64, n_samples=1024, K=args.num_K[1], dim_k=args.dim_k, heads=args.head, ch_raise=64)
+        self.tf3 = trans_block(64, 128, n_samples=1024, K=args.num_K[1], dim_k=args.dim_k, heads=args.head, ch_raise=128)
+        self.tf4 = trans_block(1024, 1024, n_samples=1024, K=args.num_K[1], dim_k=args.dim_k, heads=args.head, ch_raise=1024)
 
         # multi-graph attention
         self.attn = MGR(1024, 1024, dim_k=args.dim_k, heads=args.head)
