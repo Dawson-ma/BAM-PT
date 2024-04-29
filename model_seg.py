@@ -170,9 +170,11 @@ class Model(nn.Module):
             feature = x[..., 3:]
 
         xyz1, feature1 = self.tf1(xyz, feature)
+        print(xyz1.size(), feature1.size())
         feature1 = feature1.transpose(2, 1)
         xyz2, feature2 = self.tf2(xyz1, feature1)
         feature2 = feature1.transpose(2, 1)
+        print(xyz2.size(), feature2.size())
         xyz3, feature3 = self.tf2(xyz2, feature2)
         feature3 = feature1.transpose(2, 1)
 
