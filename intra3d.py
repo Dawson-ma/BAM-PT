@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from natsort import natsorted
 
 #BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/IntrA3D/")
+#BASE = "/content/drive/MyDrive/cse252D_team_8/Datasets/IntrA"
 BASE = "/content/drive/MyDrive/cse252D_team_8/Datasets/IntrA"
 
 
