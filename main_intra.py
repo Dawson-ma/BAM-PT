@@ -6,7 +6,6 @@ import torch.optim as optim
 import numpy as np
 import sys
 from intra3d import Intra3D
-from model_cls import Model, transformer
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
@@ -31,11 +30,16 @@ def _init_():
 
 
 def train(args, io, split, num_class=2):
+    if args.cls_state:
+        from model_cls import Model, transformer
+    else:
+        from model_seg import Model, transformer
+
     train_loader = DataLoader(
-        Intra3D(train_mode='train', cls_state=True, npoints=args.num_points, data_aug=True, choice=split),
+        Intra3D(train_mode='train', cls_state=args.cls_state, npoints=args.num_points, data_aug=True, choice=split),
         num_workers=8, batch_size=args.batch_size, shuffle=True, drop_last=True)
     test_loader = DataLoader(
-        Intra3D(train_mode='test', cls_state=True, npoints=args.num_points, data_aug=False, choice=split),
+        Intra3D(train_mode='test', cls_state=args.cls_state, npoints=args.num_points, data_aug=False, choice=split),
         num_workers=8, batch_size=args.test_batch_size, shuffle=True, drop_last=False)
 
     device = torch.device("cuda" if args.cuda else "cpu")
@@ -186,8 +190,13 @@ def val(test_loader, num_class, model, device, epoch, best_V_acc,
 
 
 def test(args, io, split, num_class=2):
+    if args.cls_state:
+        from model_cls import Model, transformer
+    else:
+        from model_seg import Model, transformer
+
     test_loader = DataLoader(
-        Intra3D(train_mode='test', cls_state=True, npoints=args.num_points, data_aug=True, choice=split),
+        Intra3D(train_mode='test', cls_state=args.cls_state, npoints=args.num_points, data_aug=True, choice=split),
         num_workers=8, batch_size=args.test_batch_size, shuffle=True, drop_last=False)
 
     device = torch.device("cuda" if args.cuda else "cpu")
@@ -282,6 +291,8 @@ if __name__ == "__main__":
                         help='evaluate the model')
     parser.add_argument('--use_norm', type=bool, default=True,
                         help='Whether to use norm')
+    parser.add_argument('--cls_state', type=bool, default=True,
+                        help='Seg or Cls')
     parser.add_argument('--num_points', type=int, default=1024,
                         help='num of points to use')
     parser.add_argument('--num_K', nargs='+', type=int,
@@ -294,6 +305,7 @@ if __name__ == "__main__":
                         help='Dimension of heads')
     parser.add_argument('--dim_k', type=int, default=32, metavar='N',
                         help='Dimension of key/query tensors')
+    
     args = parser.parse_args()
 
     _init_()
