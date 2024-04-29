@@ -173,7 +173,7 @@ class Model(nn.Module):
         feature1 = feature1.transpose(2, 1)
         xyz2, feature2 = self.tf2(xyz1, feature1)
         feature2 = feature1.transpose(2, 1)
-        xyz3, feature3 = self.tf2(xyz2, feature2)
+        xyz3, feature3 = self.tf2(xyz1, feature2)
         feature3 = feature1.transpose(2, 1)
 
         concat_feature = torch.cat([feature1, feature2, feature3], dim=1)
