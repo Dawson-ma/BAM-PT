@@ -184,10 +184,12 @@ class Model(nn.Module):
         print(feat_conv.size())
         _, feature4 = self.tf4(xyz3, feat_conv)
         feature4 = feature4.transpose(2, 1)
+        print(feature4.size())
 
 
 
         final_feature = self.attn(feature4)
+        print(final_feature.size())
         final_feature = final_feature.max(-1)[0]
         final_feature = final_feature.view(-1, 1024, N)
 
