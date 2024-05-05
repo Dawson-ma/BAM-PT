@@ -191,9 +191,10 @@ class Model(nn.Module):
         final_feature = self.attn(feature4)
         final_feature = final_feature.max(-1, keepdims = True)[0]
         print(final_feature.size())
-        final_feat = final_feature.repeat(1, 1, N)
+        final_feature = final_feature.repeat(1, 1, N)
+        final_feature = final_feature.transpose(2, 1)
 
-        final_concat = torch.cat([final_feat, feature1, feature2, feature3], dim=1)
+        final_concat = torch.cat([final_feature, feature1, feature2, feature3], dim=2)
         final_concat = final_concat.transpose(2, 1)
 
         out = self.seg(final_concat)
