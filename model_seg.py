@@ -159,7 +159,8 @@ class Model(nn.Module):
         
         self.seg = nn.Sequential(
             nn.Dropout(p=args.dropout),
-            nn.Linear(512, output_channels))
+            nn.Linear(512, output_channels),
+            nn.Softmax(dim=-1))
 
     def forward(self, x):
         # input x: [B, N, 3+3]
