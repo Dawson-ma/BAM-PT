@@ -93,7 +93,7 @@ def train(args, io, split, num_class=2):
                 loss.backward()
                 opt.step()
 
-                preds = logits.max(dim=1)[1]
+                preds = logits.max(dim=-1)[1]
                 train_true.append(label.detach().cpu().numpy())
                 train_pred.append(preds.detach().cpu().numpy())
                 count += batch_size
