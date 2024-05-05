@@ -112,7 +112,8 @@ def train(args, io, split, num_class=2):
                                                                                                 train_acc,
                                                                                                 train_bal_acc))
             else:
-                print(train_true, train_pred)
+                train_true = train_true.flatten()
+                train_pred = train_pred.flatten()
                 mean_IoU_A = jaccard_score(train_true, train_pred)
                 mean_IoU_V = jaccard_score((~train_true.astype(bool)).astype(int), (~train_pred.astype(bool)).astype(int))
 
