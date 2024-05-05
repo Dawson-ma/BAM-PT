@@ -68,6 +68,7 @@ def train(args, io, split, num_class=2):
     best_V_acc = 0.0
     best_A_acc = 0.0
     best_f1_value = 0.0
+    best_V_acc, best_A_acc, best_f1_value, best_test_acc, best_test_bal_acc = 0.0, 0.0, 0.0, 0.0, 0.0
 
     def count_parameters(model):
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
