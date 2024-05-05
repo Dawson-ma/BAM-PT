@@ -154,7 +154,7 @@ class Model(nn.Module):
 
         self.seg = nn.Sequential(
             nn.Linear(1280, 512, bias=False),
-            nn.BatchNorm1d(512),
+            nn.BatchNorm1d(1024),
             nn.ReLU(True),
             nn.Dropout(p=args.dropout),
             nn.Linear(512, output_channels))
