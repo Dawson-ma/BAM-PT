@@ -17,6 +17,7 @@ def cal_loss(pred, label, smoothing=True):
     Calculate cross entropy loss, apply label smoothing if needed.
     """
     label = label.contiguous().view(-1)  # [Batch_size]
+    print('label:', label.size())
 
     if smoothing:
         eps = 0.2
