@@ -153,7 +153,7 @@ class Model(nn.Module):
             # nn.ReLU(True))
 
         self.final_conv = nn.Sequential(
-            nn.Conv1d(1280, 512, bias=False),
+            nn.Conv1d(1280, 512, kernel_size=1, bias=False),
             nn.BatchNorm1d(512),
             nn.ReLU(True),)
         
