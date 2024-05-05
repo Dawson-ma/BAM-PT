@@ -196,7 +196,7 @@ class Model(nn.Module):
 
         final_concat = torch.cat([final_feature, feature1, feature2, feature3], dim=2)
         print(final_concat.size())
-        final_concat = final_concat.transpose(2, 1)
+        #final_concat = final_concat.transpose(2, 1)
 
         out = self.seg(final_concat)
 
