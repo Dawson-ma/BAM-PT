@@ -45,7 +45,7 @@ The ModelNet40 dataset is automatically downloaded.
 
 * For IntrA model train (1024 points)
   ```
-  CUDA_VISIBLE_DEVICES=xx python main_intra.py --exp_name intra_cls_train --mode train --num_points 1024 --lr 0.01 --use_sgd True --num_K 32 64
+  CUDA_VISIBLE_DEVICES=xx python main_intra.py --exp_name intra_cls_train --mode train --num_points 1024 --lr 0.01 --use_sgd True --num_K 32 64 --batch_size 5 --test_batch_size 8
   ```
 
 * For ModelNet40 model train (1024 points)
