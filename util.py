@@ -18,7 +18,6 @@ def cal_loss(pred, label, smoothing=True):
     """
     label = label.contiguous().view(-1)  # [Batch_size]
     pred = pred.contiguous().view(-1, pred.size(-1))  # [Batch_size, n_classes]
-    print('label:', label.size())
 
     if smoothing:
         eps = 0.2

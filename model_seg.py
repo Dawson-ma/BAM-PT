@@ -177,16 +177,16 @@ class Model(nn.Module):
         feature2 = feature2.transpose(2, 1)
         xyz3, feature3 = self.tf3(xyz2, feature2)
         feature3 = feature3.transpose(2, 1)
-        print(feature1.size(), feature2.size(), feature3.size())
+        #print(feature1.size(), feature2.size(), feature3.size())
 
         concat_feature = torch.cat([feature1, feature2, feature3], dim=2)
         concat_feature = concat_feature.transpose(2, 1)
-        print(concat_feature.size())
+        #print(concat_feature.size())
         feat_conv = self.conv_raise(concat_feature)
-        print(feat_conv.size())
+        #print(feat_conv.size())
         _, feature4 = self.tf4(xyz3, feat_conv)
         #feature4 = feature4.transpose(2, 1)
-        print(feature4.size())
+        #print(feature4.size())
 
 
 
@@ -194,10 +194,10 @@ class Model(nn.Module):
         final_feature = final_feature.max(-1, keepdims = True)[0]
         final_feature = final_feature.repeat(1, 1, N)
         final_feature = final_feature.transpose(2, 1)
-        print(final_feature.size())
+        #print(final_feature.size())
 
         final_concat = torch.cat([final_feature, feature1, feature2, feature3], dim=2)
-        print(final_concat.size())
+        #print(final_concat.size())
         final_concat = final_concat.transpose(2, 1)
 
         out = self.seg(self.final_conv(final_concat).transpose(2, 1))
