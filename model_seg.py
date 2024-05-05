@@ -152,10 +152,12 @@ class Model(nn.Module):
             # nn.BatchNorm1d(args.emb_dims),
             # nn.ReLU(True))
 
-        self.seg = nn.Sequential(
+        self.final_conv = nn.Sequential(
             nn.Linear(1280, 512, bias=False),
-            nn.BatchNorm1d(1024),
-            nn.ReLU(True),
+            nn.BatchNorm1d(512),
+            nn.ReLU(True),)
+        
+        self.seg = nn.Sequential(
             nn.Dropout(p=args.dropout),
             nn.Linear(512, output_channels))
 
@@ -196,8 +198,8 @@ class Model(nn.Module):
 
         final_concat = torch.cat([final_feature, feature1, feature2, feature3], dim=2)
         print(final_concat.size())
-        #final_concat = final_concat.transpose(2, 1)
+        final_concat = final_concat.transpose(2, 1)
 
-        out = self.seg(final_concat)
+        out = self.seg(self.final_conv(final_concat).transpose(2, 1))
 
         return out
