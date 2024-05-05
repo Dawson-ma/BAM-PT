@@ -233,12 +233,12 @@ def val_seg(test_loader, model, device, epoch, best_V_IoU, best_A_IoU, best_V_Di
             data, label = data.to(device), label.to(device).squeeze()
 
             logits = model(data)
-            preds = logits.max(dim=1)[1]
+            preds = logits.max(dim=-1)[1]
             test_true.append(label.cpu().numpy())
             test_pred.append(preds.detach().cpu().numpy())
 
-    test_true = np.concatenate(test_true)
-    test_pred = np.concatenate(test_pred)
+    test_true = np.concatenate(test_true).flatten()
+    test_pred = np.concatenate(test_pred).flatten()
     mean_IoU_A = jaccard_score(test_true, test_pred)
     mean_IoU_V = jaccard_score((~test_true.astype(bool)).astype(int), (~test_pred.astype(bool)).astype(int))
 
