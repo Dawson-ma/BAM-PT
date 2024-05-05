@@ -183,15 +183,15 @@ class Model(nn.Module):
         feat_conv = self.conv_raise(concat_feature)
         print(feat_conv.size())
         _, feature4 = self.tf4(xyz3, feat_conv)
-        feature4 = feature4.transpose(2, 1)
+        #feature4 = feature4.transpose(2, 1)
         print(feature4.size())
 
 
 
         final_feature = self.attn(feature4)
-        final_feature = final_feature.max(-1)[0]
+        final_feature = final_feature.max(-1, keepdims = True)[0]
         print(final_feature.size())
-        final_feat = final_feature.view(-1, 1024, N)
+        final_feat = final_feature.repeat(1, 1, N)
 
         final_concat = torch.cat([final_feat, feature1, feature2, feature3], dim=1)
         final_concat = final_concat.transpose(2, 1)
