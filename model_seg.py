@@ -146,7 +146,7 @@ class Model(nn.Module):
 
         self.conv_raise = nn.Sequential(
             nn.Conv1d(256, 1024, kernel_size=1, bias=False),
-            #nn.BatchNorm1d(1024),
+            nn.BatchNorm1d(1024),
             nn.ReLU(True),)
             # nn.Conv1d(512, args.emb_dims, kernel_size=1, bias=False),
             # nn.BatchNorm1d(args.emb_dims),
@@ -154,7 +154,7 @@ class Model(nn.Module):
 
         self.final_conv = nn.Sequential(
             nn.Conv1d(1280, 512, kernel_size=1, bias=False),
-            #nn.BatchNorm1d(512),
+            nn.BatchNorm1d(512),
             nn.ReLU(True),)
         
         self.seg = nn.Sequential(
@@ -184,6 +184,7 @@ class Model(nn.Module):
         #print(concat_feature.size())
         feat_conv = self.conv_raise(concat_feature)
         #print(feat_conv.size())
+        feat_conv = feat_conv.transpose(2, 1)
         _, feature4 = self.tf4(xyz3, feat_conv)
         #feature4 = feature4.transpose(2, 1)
         #print(feature4.size())
