@@ -115,11 +115,13 @@ def train(args, io, split, num_class=2):
             else:
                 train_true = train_true.flatten()
                 train_pred = train_pred.flatten()
+                V_train_true = (~train_true.astype(bool)).astype(int)
+                V_train_pred = (~train_pred.astype(bool)).astype(int)
                 mean_IoU_A = jaccard_score(train_true, train_pred)
-                mean_IoU_V = jaccard_score((~train_true.astype(bool)).astype(int), (~train_pred.astype(bool)).astype(int))
+                mean_IoU_V = jaccard_score(V_train_true, V_train_pred)
 
                 dice_A = (train_true * train_pred).sum() / (train_true[train_true == 1].sum() + train_pred[train_pred == 1].sum())
-                dice_V = (~train_true.astype(bool) & ~train_pred.astype(bool)).sum() / ((~train_true.astype(bool).sum() +  ~train_pred.astype(bool).sum()))
+                dice_V = (V_train_true * V_train_pred).sum() / (V_train_true[V_train_true == 1].sum() + V_train_pred[V_train_pred == 1].sum())
 
                 io.cprint('[Train %d, loss: %.6f, mean IoU A: %.6f, mean IoU V: %.6f, dice A: %.6f, dice V: %.6f]' % (epoch,
                                                                                                                         epoch_loss,
@@ -239,11 +241,13 @@ def val_seg(test_loader, model, device, epoch, best_V_IoU, best_A_IoU, best_V_Di
 
     test_true = np.concatenate(test_true).flatten()
     test_pred = np.concatenate(test_pred).flatten()
+    V_test_true = (~test_true.astype(bool)).astype(int)
+    V_test_pred = (~test_pred.astype(bool)).astype(int)
     mean_IoU_A = jaccard_score(test_true, test_pred)
-    mean_IoU_V = jaccard_score((~test_true.astype(bool)).astype(int), (~test_pred.astype(bool)).astype(int))
+    mean_IoU_V = jaccard_score(V_test_true, V_test_pred)
 
     dice_A = (test_true * test_pred).sum() / (test_true[test_true == 1].sum() + test_pred[test_pred == 1].sum())
-    dice_V = (~test_true.astype(bool) & ~test_pred.astype(bool)).sum() / ((~test_true.astype(bool).sum() +  ~test_pred.astype(bool).sum()))
+    dice_V = (V_test_true * V_test_pred).sum() / (V_test_true[V_test_true == 1].sum() + V_test_pred[V_test_pred == 1].sum())
     if mean_IoU_V > best_V_IoU:
         best_V_IoU = mean_IoU_V
         torch.save(model.state_dict(), 'checkpoints/%s/models/model_split_%d_v_iou.pth' % (args.exp_name, split))
