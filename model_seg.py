@@ -179,6 +179,7 @@ class Model(nn.Module):
 
         concat_feature = torch.cat([feature1, feature2, feature3], dim=2)
         concat_feature = concat_feature.transpose(2, 1)
+        print(concat_feature.size())
         feat_conv = self.conv_raise(concat_feature)
         print(feat_conv.size())
         _, feature4 = self.tf4(xyz3, feat_conv)
