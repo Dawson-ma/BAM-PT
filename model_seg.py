@@ -146,7 +146,7 @@ class Model(nn.Module):
 
         self.conv_raise = nn.Sequential(
             nn.Conv1d(256, 1024, kernel_size=1, bias=False),
-            nn.BatchNorm1d(1024),
+            #nn.BatchNorm1d(1024),
             nn.ReLU(True),)
             # nn.Conv1d(512, args.emb_dims, kernel_size=1, bias=False),
             # nn.BatchNorm1d(args.emb_dims),
@@ -154,7 +154,7 @@ class Model(nn.Module):
 
         self.final_conv = nn.Sequential(
             nn.Conv1d(1280, 512, kernel_size=1, bias=False),
-            nn.BatchNorm1d(512),
+            #nn.BatchNorm1d(512),
             nn.ReLU(True),)
         
         self.seg = nn.Sequential(
