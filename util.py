@@ -23,6 +23,7 @@ def cal_loss(pred, label, smoothing=True, focal=True):
 
     if focal:
         loss = torchvision.ops.sigmoid_focal_loss(pred, label_one_hot)
+        return loss
 
     if smoothing:
         eps = 0.2
