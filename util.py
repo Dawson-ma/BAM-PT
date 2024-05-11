@@ -18,10 +18,11 @@ def cal_loss(pred, label, smoothing=True, focal=True):
     Calculate cross entropy loss, apply label smoothing if needed.
     """
     label = label.contiguous().view(-1)  # [Batch_size]
+    label_one_hot = torch.zeros_like(pred).scatter(1, label.view(-1, 1), 1)  # [Batch_size, n_classes]
     pred = pred.contiguous().view(-1, pred.size(-1))  # [Batch_size, n_classes]
 
     if focal:
-        loss = torchvision.ops.sigmoid_focal_loss(pred, label)
+        loss = torchvision.ops.sigmoid_focal_loss(pred, label_one_hot)
 
     if smoothing:
         eps = 0.2
