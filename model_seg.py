@@ -146,7 +146,7 @@ class Model(nn.Module):
 
         self.conv_raise = nn.Sequential(
             nn.Conv1d(256, 1024, kernel_size=1, bias=False),
-            #nn.BatchNorm1d(1024),
+            nn.BatchNorm1d(1024),
             nn.ReLU(True),)
             # nn.Conv1d(512, args.emb_dims, kernel_size=1, bias=False),
             # nn.BatchNorm1d(args.emb_dims),
@@ -154,11 +154,6 @@ class Model(nn.Module):
 
         self.final_conv = nn.Sequential(
             nn.Conv1d(1280, 512, kernel_size=1, bias=False),
-            nn.BatchNorm1d(512),
-            nn.ReLU(True),)
-        
-        self.final_conv_3 = nn.Sequential(
-            nn.Conv1d(256, 512, kernel_size=1, bias=False),
             nn.BatchNorm1d(512),
             nn.ReLU(True),)
         
@@ -188,27 +183,25 @@ class Model(nn.Module):
         concat_feature = torch.cat([feature1, feature2, feature3], dim=2)
         concat_feature = concat_feature.transpose(2, 1)
         #print(concat_feature.size())
-        # feat_conv = self.conv_raise(concat_feature)
-        # #print(feat_conv.size())
-        # #feat_conv = feat_conv.transpose(2, 1)
-        # _, feature4 = self.tf4(xyz3, feat_conv)
-        # #feature4 = feature4.transpose(2, 1)
-        # #print(feature4.size())
+        feat_conv = self.conv_raise(concat_feature)
+        #print(feat_conv.size())
+        #feat_conv = feat_conv.transpose(2, 1)
+        _, feature4 = self.tf4(xyz3, feat_conv)
+        #feature4 = feature4.transpose(2, 1)
+        #print(feature4.size())
 
 
 
-        # final_feature = self.attn(feature4)
-        # final_feature = final_feature.max(-1, keepdims = True)[0]
-        # final_feature = final_feature.repeat(1, 1, N)
-        # final_feature = final_feature.transpose(2, 1)
-        # #print(final_feature.size())
+        final_feature = self.attn(feature4)
+        final_feature = final_feature.max(-1, keepdims = True)[0]
+        final_feature = final_feature.repeat(1, 1, N)
+        final_feature = final_feature.transpose(2, 1)
+        #print(final_feature.size())
 
-        # final_concat = torch.cat([final_feature, feature1, feature2, feature3], dim=2)
-        # #print(final_concat.size())
-        # final_concat = final_concat.transpose(2, 1)
+        final_concat = torch.cat([final_feature, feature1, feature2, feature3], dim=2)
+        #print(final_concat.size())
+        final_concat = final_concat.transpose(2, 1)
 
-        #out = self.seg(self.final_conv(final_concat).transpose(2, 1))
-
-        out = self.seg(self.final_conv_3(concat_feature).transpose(2, 1))
+        out = self.seg(self.final_conv(final_concat).transpose(2, 1))
 
         return out
