@@ -1,0 +1,7 @@
+import point_transformer_lib.point_transformer_ops.point_transformer_modules
+import point_transformer_lib.point_transformer_ops.point_transformer_utils
+from point_transformer_lib.point_transformer_ops._version import __version__
+
+# import point_transformer_ops.point_transformer_modules
+# import point_transformer_ops.point_transformer_utils
+# from point_transformer_ops._version import __version__
