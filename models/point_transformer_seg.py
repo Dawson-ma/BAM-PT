@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 from utils.timer import Timer
 import torch.nn.functional as F
 from point_transformer_lib.point_transformer_ops.point_transformer_modules import PointTransformerBlock, TransitionDown, TransitionUp, BFM_torch
@@ -133,4 +134,4 @@ class PointTransformerSemSegmentation(nn.Module):
 
             return seg_preds, seg_refine_preds, seg_embed, edge_preds
         else:
-            return seg_preds, None, None, None
+            return seg_preds, torch.zeros_like(seg_preds), torch.zeros_like(seg_preds), torch.zeros_like(seg_preds)
