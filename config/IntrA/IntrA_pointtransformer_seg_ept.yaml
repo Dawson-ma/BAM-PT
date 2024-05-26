@@ -18,7 +18,7 @@ TRAIN:
   sync_bn: False
   folds: [0, 1, 2, 3, 4]
   train_gpu: [0]
-  num_workers: 0  # data loader workers
+  num_workers: 8  # data loader workers
   batch_size_train: 8  # batch size for training
   batch_size_val: 8  # batch size for validation during training, memory and speed tradeoff
   base_lr: 0.001
