@@ -191,7 +191,8 @@ def train_one_epoch(train_loader, model, optimizer):
     record['loss_edge'] = loss_edge_avg / dataset_len
     record['loss_contra'] = loss_contra_avg / dataset_len
     record['iou_list'] = torch.cat(iou_list, dim=0).mean(dim=0)
-    record['iou_refine_list'] = torch.cat(iou_refine_list, dim=0).mean(dim=0)
+    if not args.ablation:
+        record['iou_refine_list'] = torch.cat(iou_refine_list, dim=0).mean(dim=0)
     return record
 
 
