@@ -210,27 +210,34 @@ def val_one_epoch(val_loader, model):
                 pts, gts, egts, eweights, gmatrix = pts.cuda(), gts.cuda(), egts.cuda(), eweights.mean(dim=0).cuda(), gmatrix.cuda()
                 seg_preds, seg_refine_preds, seg_embed, edge_preds = model(pts, gmatrix, idxs)
                 loss_seg = F.cross_entropy(seg_preds, gts, weight=val_loader.dataset.segweights.cuda())
-                loss_seg_refine = F.cross_entropy(seg_refine_preds, gts, weight=val_loader.dataset.segweights.cuda())
-                loss_edge = F.cross_entropy(edge_preds, egts, weight=eweights)
-                loss_contra = get_contra_loss(egts, gts, seg_embed, gmatrix, num_class=args.classes, temp=args.temp)
-                loss = loss_seg + args.weight_refine * loss_seg_refine + args.weight_edge * loss_edge + args.weight_contra * loss_contra
+
+                if not args.ablation:
+                    loss_seg_refine = F.cross_entropy(seg_refine_preds, gts, weight=val_loader.dataset.segweights.cuda())
+                    loss_edge = F.cross_entropy(edge_preds, egts, weight=eweights)
+                    loss_contra = get_contra_loss(egts, gts, seg_embed, gmatrix, num_class=args.classes, temp=args.temp)
+                    loss = loss_seg + args.weight_refine * loss_seg_refine + args.weight_edge * loss_edge + args.weight_contra * loss_contra
+                    loss_seg_avg += loss_seg.item()
+                    loss_seg_refine_avg += loss_seg_refine.item()
+                    loss_edge_avg += loss_edge.item()
+                    loss_contra_avg += loss_contra.item()
+                    iou_refine_avg.append(cal_IoU_Acc_batch(seg_refine_preds, gts))
+
+                else:
+                    loss = loss_seg
 
                 loss_avg += loss.item()
-                loss_seg_avg += loss_seg.item()
-                loss_seg_refine_avg += loss_seg_refine.item()
-                loss_edge_avg += loss_edge.item()
-                loss_contra_avg += loss_contra.item()
+
                 iou_avg.append(cal_IoU_Acc_batch(seg_preds, gts))
-                iou_refine_avg.append(cal_IoU_Acc_batch(seg_refine_preds, gts))
 
             dataset_len = len(val_loader.dataset)
             loss_avg_list.append(loss_avg / dataset_len)
-            loss_seg_avg_list.append(loss_seg_avg / dataset_len)
-            loss_seg_refine_avg_list.append(loss_seg_refine_avg / dataset_len)
-            loss_edge_avg_list.append(loss_edge_avg / dataset_len)
-            loss_contra_avg_list.append(loss_contra_avg / dataset_len)
             iou_avg_list.append(torch.cat(iou_avg, dim=0).mean(dim=0))
-            iou_refine_avg_list.append(torch.cat(iou_refine_avg, dim=0).mean(dim=0))
+            if not args.ablation:
+                loss_seg_avg_list.append(loss_seg_avg / dataset_len)
+                loss_seg_refine_avg_list.append(loss_seg_refine_avg / dataset_len)
+                loss_edge_avg_list.append(loss_edge_avg / dataset_len)
+                loss_contra_avg_list.append(loss_contra_avg / dataset_len)
+                iou_refine_avg_list.append(torch.cat(iou_refine_avg, dim=0).mean(dim=0))
     
     record = {}
     record['loss_all'] = np.mean(loss_avg_list)
@@ -239,7 +246,8 @@ def val_one_epoch(val_loader, model):
     record['loss_edge'] = np.mean(loss_edge_avg_list)
     record['loss_contra'] = np.mean(loss_contra_avg_list)
     record['iou_list'] = torch.stack(iou_avg_list, dim=0).mean(dim=0)
-    record['iou_refine_list'] = torch.stack(iou_refine_avg_list, dim=0).mean(dim=0)
+    if not args.ablation:
+        record['iou_refine_list'] = torch.stack(iou_refine_avg_list, dim=0).mean(dim=0)
     return record
 
 
