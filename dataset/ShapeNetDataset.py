@@ -18,14 +18,12 @@ def pc_normalize(pc):
     return pc
 
 class ShapeNetDataset(Dataset):
-    def __init__(self, root="shapenet", 
-                 mode='train', transform=None, pcSize=None, model_type="EPT_Net",
+    def __init__(self, root="shapenet", mode='train', transform=None, pcSize=None,
                  uniform=False, use_rgbs=False, K=4, perturbed=False, radius=0.2):
         self.root = root
         self.mode = mode
         self.transform = transform
         self.pcSize = pcSize
-        self.model_type = model_type
         self.uniform = uniform
         self.use_rgbs = use_rgbs
         self.K = K
@@ -58,44 +56,37 @@ class ShapeNetDataset(Dataset):
         point_idxs = range(N)
         gmatrix = torch.cdist(points, points)
         
-        # Dataset for EPT_Net
-        if self.model_type == "EPT_Net":
-            # Sampling
-            if N >= self.pcSize:
-                if self.uniform:
-                    points_cuda = torch.from_numpy().float(points).unsqueeze(0)
-                    selected_points_idxs = FPS(points_cuda, self.pcSize).squeeze().numpy().astype(np.int64)
-            else:
-                if self.uniform:
-                    points_cuda = torch.from_numpy(points).float().unsqueeze(0)
-                    scale = self.pcSize // N
-                    extra = self.pcSize % N
-                    extra_idxs = FPS(points_cuda, extra).squeeze().numpy().astype(np.int64)
-                    selected_points_idxs = np.concatenate((np.array(list(point_idxs)*scale).astype(np.int64), extra_idxs))
+        # Sampling
+        if N >= self.pcSize:
+            if self.uniform:
+                points_cuda = torch.from_numpy().float(points).unsqueeze(0)
+                selected_points_idxs = FPS(points_cuda, self.pcSize).squeeze().numpy().astype(np.int64)
+        else:
+            if self.uniform:
+                points_cuda = torch.from_numpy(points).float().unsqueeze(0)
+                scale = self.pcSize // N
+                extra = self.pcSize % N
+                extra_idxs = FPS(points_cuda, extra).squeeze().numpy().astype(np.int64)
+                selected_points_idxs = np.concatenate((np.array(list(point_idxs)*scale).astype(np.int64), extra_idxs))
             
             
-            selected_points = points[selected_points_idxs]
-            selected_rgbs = rgbs[selected_points_idxs]
-            selected_gmatrix = gmatrix[selected_points_idxs, :][:, selected_points_idxs]
-            selected_labels = labels[selected_points_idxs]
+        selected_points = points[selected_points_idxs]
+        selected_rgbs = rgbs[selected_points_idxs]
+        selected_gmatrix = gmatrix[selected_points_idxs, :][:, selected_points_idxs]
+        selected_labels = labels[selected_points_idxs]
             
-            selected_points = pc_normalize(selected_points)
-            if self.use_rgbs:
-                selected_points = np.concatenate((selected_points, selected_rgbs), axis=1)
-            if self.transform is not None:
-                selected_points = self.transform(selected_points).float()
-            else:
-                selected_points = torch.from_numpy(selected_points).float()
+        selected_points = pc_normalize(selected_points)
+        if self.use_rgbs:
+            selected_points = np.concatenate((selected_points, selected_rgbs), axis=1)
+        if self.transform is not None:
+            selected_points = self.transform(selected_points).float()
+        else:
+            selected_points = torch.from_numpy(selected_points).float()
                 
-            selected_labels = torch.from_numpy(selected_labels).long()
-            selected_gmatrix = torch.from_numpy(selected_gmatrix).float()
-            selected_edge_labels, edgeweights = self.get_edge_label(selected_points_idxs, selected_labels, selected_gmatrix, self.K)
-            
-            return selected_points, selected_labels, selected_edge_labels, edgeweights, selected_gmatrix, selected_points_idxs
-        
-        # Data for BAM_PT
-        elif self.model_type == "BAM_PT":
-            pass
+        selected_labels = torch.from_numpy(selected_labels).long()
+        selected_gmatrix = torch.from_numpy(selected_gmatrix).float()
+        selected_edge_labels, edgeweights = self.get_edge_label(selected_points_idxs, selected_labels, selected_gmatrix, self.K)
+        return selected_points, selected_labels, selected_edge_labels, edgeweights, selected_gmatrix, selected_points_idxs
     
     def get_edge_label(self, idxs, labels, gmatrix, k): 
         _, indices, reverse_indices = np.unique(idxs, return_index=True, return_inverse=True)

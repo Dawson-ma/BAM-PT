@@ -15,6 +15,7 @@ from torchvision import transforms
 from tensorboardX import SummaryWriter
 
 from dataset.IntrADataset import IntrADataset
+from dataset.ShapeNetDataset import ShapeNetDataset
 import dataset.data_utils as d_utils
 
 from utils import config
@@ -113,6 +114,32 @@ def main_worker(gpu, ngpus_per_node, test_fold):
                     test_fold=test_fold, num_edge_neighbor=args.num_edge_neighbor, mode='test', transform=None)
         val_loader = DataLoader(val_data, batch_size=args.batch_size_val,
                             shuffle=False, num_workers=args.num_workers, pin_memory=True, drop_last=False)
+        
+        
+    elif args.data_name == "ShapeNet":
+        train_transforms = transforms.Compose(
+            [
+                d_utils.PointcloudToTensor(),
+                d_utils.PointcloudScale(),
+                d_utils.PointcloudRotate(),
+                d_utils.PointcloudRotatePerturbation(),
+                d_utils.PointcloudTranslate(),
+                d_utils.PointcloudJitter(),
+                d_utils.PointcloudRandomInputDropout(),
+            ]
+        )
+        train_data = ShapeNetDataset(root=args.data_root, mode="train", transform=train_transforms, 
+                                    pcSize=args.sample_points, uniform=args.use_uniform_sample, 
+                                    use_rgbs=args.use_normals, K=args.num_edge_neighbor)
+        train_loader = DataLoader(train_data, batch_size=args.batch_size_train,
+                            shuffle=True, num_workers=args.num_workers, pin_memory=True, drop_last=True)
+        val_data = ShapeNetDataset(root=args.data_root, mode="val", transform=train_transforms, 
+                                    pcSize=args.sample_points, uniform=args.use_uniform_sample, 
+                                    use_rgbs=args.use_normals, K=args.num_edge_neighbor)
+        val_loader = DataLoader(val_data, batch_size=args.batch_size_val,
+                            shuffle=False, num_workers=args.num_workers, pin_memory=True, drop_last=False)
+    
+    
     logger.info("=> Loaded {} training samples, {} testing samples".format(len(train_data), len(val_data)))
 
     logger.info("=====================> Training loop...")
