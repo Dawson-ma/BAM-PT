@@ -12,29 +12,6 @@ def cal_IoU_Acc_batch(preds, labels):
 
     return IoU
 
-def cal_mul_IoU_Acc_batch(preds, labels, edge_labels):
-    B, C, _ = preds.shape
-    preds = torch.argmax(preds, dim=1)
-    IoU = torch.zeros(B, C).cuda()
-    inner_IoU = torch.zeros(B, C).cuda()
-    outer_IoU = torch.zeros(B, C).cuda()
-    
-    for j in range(C):
-        # Intersection
-        tmp_and_num = torch.sum(torch.bitwise_and(preds==j, labels==j), dim=1, keepdim=False)
-        # Union
-        tmp_or_num = torch.sum(torch.bitwise_or(preds==j, labels==j), dim=1, keepdim=False)
-        # Inner Intersection
-        tmp_inner_and_num = torch.sum(torch.bitwise_and(preds==j, edge_labels==1), dim=1, keepdim=False)
-        # Outer Intersection
-        tmp_outer_and_num = torch.sum(torch.bitwise_and(preds==j, edge_labels==0), dim=1, keepdim=False)
-        
-        IoU[..., j] = tmp_and_num / tmp_or_num
-        inner_IoU[..., j] = tmp_inner_and_num / tmp_or_num
-        outer_IoU[..., j] = tmp_outer_and_num / tmp_or_num
-
-    return IoU, inner_IoU, outer_IoU
-
 
 def record_statistics(writer, record, mode, epoch):
     for k, v in record.items():

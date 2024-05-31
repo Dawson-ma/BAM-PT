@@ -14,7 +14,7 @@ from dataset import IntrADataset
 import dataset.data_utils as d_utils
 
 from utils import config
-from utils.tools import record_statistics, cal_IoU_Acc_batch, cal_mul_IoU_Acc_batch, get_contra_loss 
+from utils.tools import record_statistics, cal_IoU_Acc_batch, get_contra_loss 
 
 
 def get_parser():
@@ -118,10 +118,8 @@ def main_worker(gpu, ngpus_per_node, test_fold, test_times=3):
 
     logger.info("=> Loading data ...")
     if args.data_name == "IntrA":
-        # val_data = IntrADataset(args.data_root, args.test_points, args.use_uniform_sample, args.use_normals, 
-        #             test_fold=test_fold, num_edge_neighbor=args.num_edge_neighbor, mode='test', transform=None, test_all=False)
         val_data = IntrADataset(args.data_root, args.test_points, args.use_uniform_sample, args.use_normals, 
-                    test_fold=test_fold, num_edge_neighbor=args.num_edge_neighbor, mode='test', transform=None)
+                    test_fold=test_fold, num_edge_neighbor=args.num_edge_neighbor, mode='test', transform=None, test_all=False)
         val_loader = DataLoader(val_data, batch_size=args.batch_size_val,
                             shuffle=False, num_workers=args.num_workers, pin_memory=True, drop_last=False)
 
@@ -161,16 +159,12 @@ def validation(val_loader, model):
                 loss_edge_avg += loss_edge.item()
                 loss_contra_avg += loss_contra.item()
                 
-                iou, inner_iou, outer_iou = cal_mul_IoU_Acc_batch(seg_preds, gts, egts)
-                iou, inner_iou, outer_iou = cal_mul_IoU_Acc_batch(seg_preds, gts, egts)
-                # iou, inner_iou, outer_iou = cal_IoU_Acc_batch(seg_preds, gts)
-                # iou, inner_iou, outer_iou = cal_IoU_Acc_batch(seg_preds, gts)
+                iou, inner_iou, outer_iou = cal_IoU_Acc_batch(seg_preds, gts, egts)
                 iou_avg.append(iou)
                 inner_iou_avg.append(inner_iou)
                 outer_iou_avg.append(outer_iou)
 
-                iou_refine, inner_iou_refine, outer_iou_refine = cal_mul_IoU_Acc_batch(seg_refine_preds, gts, egts)
-                # iou_refine, inner_iou_refine, outer_iou_refine = cal_IoU_Acc_batch(seg_refine_preds, gts, egts)
+                iou_refine, inner_iou_refine, outer_iou_refine = cal_IoU_Acc_batch(seg_refine_preds, gts, egts)
                 iou_refine_avg.append(iou_refine)
                 inner_iou_refine_avg.append(inner_iou_refine)
                 outer_iou_refine_avg.append(outer_iou_refine)

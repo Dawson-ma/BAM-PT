@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import einsum
 import numpy as np
-import point_transformer_lib.point_transformer_ops.point_transformer_utils as pt_utils
+import point_transformer_ops.point_transformer_utils as pt_utils
 
 
 

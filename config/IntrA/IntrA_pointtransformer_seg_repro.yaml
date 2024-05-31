@@ -30,7 +30,7 @@ TRAIN:
   manual_seed: 666
   print_freq: 1
   save_freq: 1
-  save_path: /content/drive/MyDrive/EPTnet/exp/IntrA/pointtransformer_seg_repro_test
+  save_path: /3d_data/datasets/EPT/test/
   weight:  # path to initial weight (default: none)
   weight_edge: 1
   weight_contra: 0.2

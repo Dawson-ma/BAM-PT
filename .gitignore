@@ -1,5 +1,0 @@
-/data/IntrA
-.DS_Store
-pointnet2_ops_lib/
-*/__pycache__/
-*/*/__pycache__/

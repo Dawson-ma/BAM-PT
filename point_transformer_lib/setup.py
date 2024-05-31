@@ -16,8 +16,7 @@ requirements = ["torch>=1.4"]
 
 exec(open(osp.join("point_transformer_ops", "_version.py")).read())
 
-os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0+PTX;5.0;6.0;6.1;6.2;7.0;7.5"
-# os.environ["TORCH_CUDA_ARCH_LIST"] = "3.7+PTX;5.0;6.0;6.1;6.2;7.0;7.5"
+os.environ["TORCH_CUDA_ARCH_LIST"] = "3.7+PTX;5.0;6.0;6.1;6.2;7.0;7.5"
 setup(
     name="point_transformer_ops",
     version=__version__,
