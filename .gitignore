@@ -1,4 +1,3 @@
-datasets
 *.png
 *.eps
 *.aux
@@ -32,15 +31,14 @@ __pycache__
 *.raw
 *.mhd
 .vscode
-IntrA3D
 checkpoints
 data
 exp
 output
 pc
 .vscode
-venv
 *.pth
 *.whl
-shapenetcore_partanno_segmentation_benchmark_v0_normal
+shapenet
+IntrA
 modelnet40_normal_resampled

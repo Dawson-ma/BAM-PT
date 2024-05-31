@@ -18,7 +18,7 @@ def pc_normalize(pc):
     return pc
 
 class ShapeNetDataset(Dataset):
-    def __init__(self, root="shapenetcore_partanno_segmentation_benchmark_v0_normal", 
+    def __init__(self, root="shapenet", 
                  mode='train', transform=None, pcSize=None, model_type="EPT_Net",
                  uniform=False, use_rgbs=False, K=4, perturbed=False, radius=0.2):
         self.root = root
