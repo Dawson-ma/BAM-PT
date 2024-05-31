@@ -1,0 +1,60 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tungyen-agile3d-evaluation-single-object-kitti
+  namespace: ucsd-haosulab
+spec:
+  ttlSecondsAfterFinished: 86400 # Wait one day to delete completed jobs
+  template:
+    spec:
+      tolerations:
+      - key: "nautilus.io/nrp-testing"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      containers:
+        - name: gpu-container
+          image: chrischoy/minkowski_engine:latest
+          # imagePullPolicy: Always
+          command:
+            - "sh"
+            - "-c"
+          args:
+            - "cd /yen-fast-vol/AGILE3D/ && pip install wandb matplotlib ninja open3d && pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 -f https://download.pytorch.org/whl/torch_stable.html && 
+              ./scripts/eval_single_kitti360.sh"
+          resources:
+            requests:
+              cpu: "4"
+              memory: "16Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "4"
+              memory: "16Gi"
+              nvidia.com/gpu: "1"
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: yen-fast-vol
+              mountPath: /yen-fast-vol
+      volumes:
+        - name: dshm # shared memory, required for the multi-worker dataloader
+          emptyDir:
+            medium: Memory
+        - name: yen-fast-vol
+          persistentVolumeClaim:
+            claimName: yen-fast-vol
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  # - key: nautilus.io/group
+                  #   operator: In
+                  #   values:
+                  #     - haosu
+                  - key: nvidia.com/gpu.product
+                    operator: In
+                    values:
+                      - NVIDIA-GeForce-RTX-3090
+  backoffLimit: 0 # The number of attempts to restart after crash
