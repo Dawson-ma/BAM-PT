@@ -72,6 +72,38 @@ If you find this work useful for your research, please cite our paper:
 }
 ```
 
+## Results
+512:
+
+Norm:
+        Best mIoU is 0.9313, vIoU is 0.9748, aIoU is 0.8879
+[2024-06-01 04:00:24,833 INFO train.py line 69 5643] => Final mIoU is 0.9294, vIoU is 0.9672, aIoU is 0.8915
+
+Ablate:
+        Best mIoU is 0.9234, vIoU is 0.9713, aIoU is 0.8755
+[2024-06-01 04:24:44,633 INFO train.py line 69 5645] => Final mIoU is 0.9204, vIoU is 0.9632, aIoU is 0.8775
+
+1024:
+
+Norm:
+        Best mIoU is 0.9220, vIoU is 0.9661, aIoU is 0.8780
+[2024-06-01 02:49:48,651 INFO train.py line 69 5637] => Final mIoU is 0.9289, vIoU is 0.9673, aIoU is 0.8906
+
+Ablate:
+
+
+2048:
+
+Norm:
+        Best mIoU is 0.9186, vIoU is 0.9638, aIoU is 0.8734
+[2024-06-01 08:34:51,107 INFO train.py line 69 5645] => Final mIoU is 0.9182, vIoU is 0.9616, aIoU is 0.8748
+
+Ablate:
+        Best mIoU is 0.9196, vIoU is 0.9647, aIoU is 0.8744
+[2024-06-01 08:17:35,104 INFO train.py line 69 5637] => Final mIoU is 0.9157, vIoU is 0.9611, aIoU is 0.8704
+
+
+
 ## 6. Acknowledgement
 This work is based on [point-transformer](https://github.com/POSTECH-CVLab/point-transformer).
 
