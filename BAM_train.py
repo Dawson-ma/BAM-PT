@@ -98,21 +98,19 @@ def main_worker(gpu, ngpus_per_node, test_fold):
     logger.info("=> Features:{}, Classes: {}".format(args.fea_dim, args.classes))
 
     logger.info("=====================> Loading data ...")
-    train_transforms = transforms.Compose(
-            [
-                d_utils.PointcloudToTensor(),
-                d_utils.PointcloudScale(),
-                d_utils.PointcloudRotate(),
-                d_utils.PointcloudRotatePerturbation(),
-                d_utils.PointcloudTranslate(),
-                d_utils.PointcloudJitter(),
-                d_utils.PointcloudRandomInputDropout(),
-            ]
+    transform = transforms.Compose(
+        [
+            d_utils.PointcloudToTensor(),
+            d_utils.PointcloudScale(),
+            d_utils.PointcloudRotate(),
+            d_utils.PointcloudTranslate(),
+            d_utils.PointcloudRandomInputDropout(),
+        ]
     )
     
     if args.data_name == "IntrA":
         train_data = IntrADataset.IntrADataset_PTv3(args.data_root, args.sample_points, args.use_uniform_sample, args.use_normals, 
-                    test_fold=test_fold, num_edge_neighbor=args.num_edge_neighbor, mode='train', transform=train_transforms)
+                    test_fold=test_fold, num_edge_neighbor=args.num_edge_neighbor, mode='train', transform=transform)
         train_loader = DataLoader(train_data, batch_size=args.batch_size_train,
                             shuffle=True, num_workers=args.num_workers, pin_memory=True, drop_last=True)
         val_data = IntrADataset.IntrADataset_PTv3(args.data_root, args.sample_points, args.use_uniform_sample, args.use_normals, 
@@ -120,14 +118,14 @@ def main_worker(gpu, ngpus_per_node, test_fold):
         val_loader = DataLoader(val_data, batch_size=args.batch_size_val,
                             shuffle=False, num_workers=args.num_workers, pin_memory=True, drop_last=False)
     elif args.data_name == "ShapeNet":
-        train_data = ShapeNetDataset.ShapeNetDataset(root=args.data_root, mode="train", transform=train_transforms, 
+        train_data = ShapeNetDataset.ShapeNetDataset(root=args.data_root, mode="train", transform=transform, 
                                     pcSize=args.sample_points, uniform=args.use_uniform_sample, 
-                                    use_rgbs=args.use_normals, K=args.num_edge_neighbor)
+                                    use_norms=args.use_normals, K=args.num_edge_neighbor)
         train_loader = DataLoader(train_data, batch_size=args.batch_size_train,
                             shuffle=True, num_workers=args.num_workers, pin_memory=True, drop_last=True)
-        val_data = ShapeNetDataset.ShapeNetDataset(root=args.data_root, mode="val", transform=train_transforms, 
+        val_data = ShapeNetDataset.ShapeNetDataset(root=args.data_root, mode="val", transform=transform, 
                                     pcSize=args.sample_points, uniform=args.use_uniform_sample, 
-                                    use_rgbs=args.use_normals, K=args.num_edge_neighbor)
+                                    use_norms=args.use_normals, K=args.num_edge_neighbor)
         val_loader = DataLoader(val_data, batch_size=args.batch_size_val,
                             shuffle=False, num_workers=args.num_workers, pin_memory=True, drop_last=False)    
     
@@ -137,10 +135,9 @@ def main_worker(gpu, ngpus_per_node, test_fold):
     best_miou = 0
     best_iou_list = []
     for epoch in range(args.start_epoch, args.epochs):
-        print("Now epoch {} starts!".format(epoch))
+        print("Now epoch {} starts!".format(epoch+1))
         record_train = train_one_epoch(train_loader, model, optimizer)
         writer = record_statistics(writer, record_train, mode='train', epoch=epoch)
-
         scheduler.step()
 
         if args.evaluate and (epoch % args.eval_freq == 0):

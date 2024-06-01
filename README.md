@@ -43,7 +43,10 @@ cd point_transformer_lib
 python setup.py build_ext install
 ```
 
-
+# _Run the training code_ #
+```bash
+python -m BAM_train --config config/ShapeNet/ShapeNet_BAM_PT.yaml sample_points 512
+```
 
 # PTV3 for IntrA
 Download all the dependencies of ptv3 and ept.

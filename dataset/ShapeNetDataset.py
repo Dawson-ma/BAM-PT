@@ -4,7 +4,7 @@ from torchvision import transforms
 import os
 import numpy as np
 import json
-from dataset.utils import make_perturbed
+from dataset.utils import make_perturbed, getNorm
 from point_transformer_lib.point_transformer_ops.point_transformer_utils import FPS
 
 # Download link for ShapeNet: https://shapenet.cs.stanford.edu/media/shapenetcore_partanno_segmentation_benchmark_v0_normal.zip
@@ -19,13 +19,13 @@ def pc_normalize(pc):
 
 class ShapeNetDataset(Dataset):
     def __init__(self, root="shapenet", mode='train', transform=None, pcSize=None,
-                 uniform=False, use_rgbs=False, K=4, perturbed=False, radius=0.2):
+                 uniform=False, use_norms=False, K=4, perturbed=False, radius=0.2):
         self.root = root
         self.mode = mode
         self.transform = transform
         self.pcSize = pcSize
         self.uniform = uniform
-        self.use_rgbs = use_rgbs
+        self.use_norms = use_norms
         self.K = K
         self.perturbed = perturbed
         self.radius = radius
@@ -47,10 +47,11 @@ class ShapeNetDataset(Dataset):
         
         points = data[:, :3]
         rgbs = data[:, 3:-1]
+        # norms = getNorm(points)
         labels = data[:, -1]
         
         if self.perturbed:
-            points, rgbs, labels = make_perturbed(points, rgbs, labels, radius=self.radius)
+            points, rgbs, labels, norms = make_perturbed(points, rgbs, labels, radius=self.radius, norms=None)
         
         N = points.shape[0]
         point_idxs = range(N)
@@ -72,11 +73,12 @@ class ShapeNetDataset(Dataset):
             
         selected_points = points[selected_points_idxs]
         selected_rgbs = rgbs[selected_points_idxs]
+        # selected_norms = norms[selected_points_idxs]
         selected_gmatrix = gmatrix[selected_points_idxs, :][:, selected_points_idxs]
         selected_labels = labels[selected_points_idxs]
             
         selected_points = pc_normalize(selected_points)
-        if self.use_rgbs:
+        if self.use_norms:
             selected_points = np.concatenate((selected_points, selected_rgbs), axis=1)
         if self.transform is not None:
             selected_points = self.transform(selected_points).float()

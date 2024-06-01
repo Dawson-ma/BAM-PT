@@ -3,7 +3,7 @@ import numpy as np
 import open3d as o3d
 import os
 
-def make_perturbed(points, rgbs, labels, gmatrix=None, radius=0.1):
+def make_perturbed(points, rgbs, labels, gmatrix=None, radius=0.1, norms=None):
     
     pc_ori = o3d.geometry.PointCloud()
     pc_ori.points = o3d.utility.Vector3dVector(points)
@@ -20,6 +20,10 @@ def make_perturbed(points, rgbs, labels, gmatrix=None, radius=0.1):
     perturbedPoints = points[mask, :]
     perturbedRgbs = rgbs[mask, :]
     perturbedLabels = labels[mask]
+    if norms is not None:
+        perturbedNorms = norms[mask, :]
+    else:
+        perturbedNorms = None
     if gmatrix is not None:
         gmatrix = gmatrix[mask, mask]
     
@@ -27,7 +31,15 @@ def make_perturbed(points, rgbs, labels, gmatrix=None, radius=0.1):
     pc.points = o3d.utility.Vector3dVector(perturbedPoints)
     pc.colors = o3d.utility.Vector3dVector(perturbedRgbs)
     o3d.visualization.draw_geometries([pc])
-    return perturbedPoints, perturbedRgbs, perturbedLabels, gmatrix
+    return perturbedPoints, perturbedRgbs, perturbedLabels, gmatrix, perturbedNorms
+
+def getNorm(points):
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+    pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
+    pcd.orient_normals_consistent_tangent_plane(k=30)
+    normals = np.asarray(pcd.normals)
+    return normals
 
 if __name__ == "__main__":
     root="shapenetcore_partanno_segmentation_benchmark_v0_normal"
