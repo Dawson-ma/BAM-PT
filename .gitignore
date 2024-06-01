@@ -42,3 +42,5 @@ pc
 shapenet
 IntrA
 modelnet40_normal_resampled
+point_transformer_lib
+Pointcept
