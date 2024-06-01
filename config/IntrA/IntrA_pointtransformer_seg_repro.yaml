@@ -1,6 +1,6 @@
 DATA:
   data_name: IntrA
-  data_root: data/IntrA/
+  data_root: dataset/IntrA/
   sample_points: 512
   use_uniform_sample: True
   use_normals: True
@@ -16,6 +16,8 @@ TRAIN:
   arch: IntrA_pointtransformer_seg_repro
   use_xyz: True
   sync_bn: False
+  cls_num: 50
+  feat_dim: 2
   folds: [0, 1, 2, 3, 4]
   train_gpu: [0]
   num_workers: 8  # data loader workers
@@ -30,7 +32,7 @@ TRAIN:
   manual_seed: 666
   print_freq: 1
   save_freq: 1
-  save_path: /3d_data/datasets/EPT/test/
+  save_path: checkpoints/IntrA/
   weight:  # path to initial weight (default: none)
   weight_edge: 1
   weight_contra: 0.2
