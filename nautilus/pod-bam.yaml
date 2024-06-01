@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: tungyen-bam
+  name: tungyen-bam1
   namespace: ucsd-haosulab
   annotations:
     yunikorn.apache.org/allow-preemption: "true"

@@ -14,35 +14,48 @@ spec:
         effect: "NoSchedule"
       containers:
         - name: gpu-container
-          image: chrischoy/minkowski_engine:latest
+          image: tungyenchiang/resample-image
           # imagePullPolicy: Always
           command:
             - "sh"
             - "-c"
           args:
-            - "cd /yen-fast-vol/AGILE3D/ && pip install wandb matplotlib ninja open3d && pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 -f https://download.pytorch.org/whl/torch_stable.html && 
-              ./scripts/eval_single_kitti360.sh"
+            - "apt-get update && apt-get install -y git &&
+              ln -fs /usr/share/zoneinfo/America/Los_Angeles /etc/localtime && 
+              apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget -y &&\
+              pip install ninja h5py pyyaml sharedarray tensorboard tensorboardx yapf addict einops scipy plyfile termcolor timm && \
+              cd /tungyen-fast-vol/ && \
+              pip install torch_cluster-1.6.1+pt20cu118-cp39-cp39-linux_x86_64.whl && \
+              pip install torch_scatter-2.1.1+pt20cu118-cp39-cp39-linux_x86_64.whl && \
+              pip install torch_sparse-0.6.17+pt20cu118-cp39-cp39-linux_x86_64.whl && 
+              pip install torch-geometric && \
+              cd BAM_PT/PointTransformerV3/Pointcept/libs/pointops/ && python setup.py install && \
+              cd ../../ && pip install spconv-cu118 open3d packaging wheel tensorboardx wandb trimesh && \
+              MAX_JOBS=4 pip install flash-attn --no-build-isolation && \
+              cd point_transformer_lib && python setup.py build_ext install"
           resources:
             requests:
               cpu: "4"
-              memory: "16Gi"
+              memory: "32Gi"
+              ephemeral-storage: "30Gi"
               nvidia.com/gpu: "1"
             limits:
               cpu: "4"
-              memory: "16Gi"
+              memory: "32Gi"
+              ephemeral-storage: "30Gi"
               nvidia.com/gpu: "1"
           volumeMounts:
             - name: dshm
               mountPath: /dev/shm
-            - name: yen-fast-vol
-              mountPath: /yen-fast-vol
+            - name: tungyen-fast-vol
+              mountPath: /tungyen-fast-vol
       volumes:
         - name: dshm # shared memory, required for the multi-worker dataloader
           emptyDir:
             medium: Memory
-        - name: yen-fast-vol
+        - name: tungyen-fast-vol
           persistentVolumeClaim:
-            claimName: yen-fast-vol
+            claimName: tungyen-fast-vol
       restartPolicy: Never
       affinity:
         nodeAffinity:
