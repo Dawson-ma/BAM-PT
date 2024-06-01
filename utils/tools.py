@@ -33,26 +33,26 @@ def get_contra_loss(egts, gts, seg_emb, gmatrix, num_class, temp):
     seg_emb = seg_emb.transpose(1, 2).contiguous()
     detach_emb = seg_emb.clone().detach()
     loss_contra = 0.0
-    # import pdb; pdb.set_trace()
     for i in range(B):
         egts_this, gts_this, seg_emb_this, gmatrix_this = egts[i, :], gts[i, :], seg_emb[i, ...], gmatrix[i, ...]
         detach_emb_this = detach_emb[i, ...]
         nonedge_idxs = torch.nonzero(egts_this==0, as_tuple=True)[0]
         edge_idxs = torch.nonzero(egts_this==1, as_tuple=True)[0]
-
+        print("How many edge: ", edge_idxs.shape)
         edge_gts = gts_this[edge_idxs]
         edge_emb = seg_emb_this[edge_idxs, :]
         nonedge_gts = gts_this[nonedge_idxs]
         nonedge_detach_emb = detach_emb_this[nonedge_idxs, :]
         nonedge_gmatrix = gmatrix_this[nonedge_idxs, :]
-
+        print("Non edge gt: ", nonedge_gts)
         keys = []
         for j in range(num_class):
             jclass_nonedge_emb = nonedge_detach_emb[nonedge_gts==j, :]
             jclass_nonedge_gmatrix = nonedge_gmatrix[nonedge_gts==j, ][:, edge_idxs].mean(dim=-1)
             jclass_nonedge_neighbor_idxs = jclass_nonedge_gmatrix.argsort(dim=-1)[ :16]
             keys.append(jclass_nonedge_emb[jclass_nonedge_neighbor_idxs, :])
-        
+        for j in range(num_class):
+            print(keys[j].shape)
         for j in range(num_class):
             positive_key = keys[j].view(-1, D) # (B, D)
             negative_key = torch.stack(keys[:j] + keys[j+1:], dim=0).view(-1, D) #(C-1*B, D)

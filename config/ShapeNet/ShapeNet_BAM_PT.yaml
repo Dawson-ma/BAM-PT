@@ -1,10 +1,10 @@
 DATA:
-  data_name: IntrA
-  data_root: data/IntrA/
+  data_name: ShapeNet
+  data_root: dataset/shapenet/
   sample_points: 512
   use_uniform_sample: True
   use_normals: True
-  classes: 2
+  classes: 50
   fea_dim: 6
   loop: 1
 
@@ -13,16 +13,18 @@ MODEL:
   downsampling_ratio: 0.5
 
 TRAIN:
-  arch: ShapeNet_pointtransformer_seg_repro
+  arch: BAM_PT_Shapenet
   use_xyz: True
   sync_bn: False
-  folds: [0, 1, 2, 3, 4]
+  folds: [0]
+  cls_num: 50
+  feat_dim: 2
   train_gpu: [0]
   num_workers: 8  # data loader workers
   batch_size_train: 8  # batch size for training
   batch_size_val: 8  # batch size for validation during training, memory and speed tradeoff
   base_lr: 0.001
-  epochs: 400
+  epochs: 100
   start_epoch: 0
   momentum: 0.9
   weight_decay: 0.0
@@ -30,7 +32,7 @@ TRAIN:
   manual_seed: 666
   print_freq: 1
   save_freq: 1
-  save_path: /3d_data/datasets/EPT/test/
+  save_path: checkpoints/shapenet/
   weight:  # path to initial weight (default: none)
   weight_edge: 1
   weight_contra: 0.2

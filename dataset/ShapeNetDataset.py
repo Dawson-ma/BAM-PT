@@ -4,7 +4,7 @@ from torchvision import transforms
 import os
 import numpy as np
 import json
-from utils import make_perturbed
+from dataset.utils import make_perturbed
 from point_transformer_lib.point_transformer_ops.point_transformer_utils import FPS
 
 # Download link for ShapeNet: https://shapenet.cs.stanford.edu/media/shapenetcore_partanno_segmentation_benchmark_v0_normal.zip
@@ -54,12 +54,12 @@ class ShapeNetDataset(Dataset):
         
         N = points.shape[0]
         point_idxs = range(N)
-        gmatrix = torch.cdist(points, points)
+        gmatrix = torch.cdist(torch.from_numpy(points), torch.from_numpy(points))
         
         # Sampling
         if N >= self.pcSize:
             if self.uniform:
-                points_cuda = torch.from_numpy().float(points).unsqueeze(0)
+                points_cuda = torch.from_numpy(points).float().unsqueeze(0)
                 selected_points_idxs = FPS(points_cuda, self.pcSize).squeeze().numpy().astype(np.int64)
         else:
             if self.uniform:
@@ -84,7 +84,7 @@ class ShapeNetDataset(Dataset):
             selected_points = torch.from_numpy(selected_points).float()
                 
         selected_labels = torch.from_numpy(selected_labels).long()
-        selected_gmatrix = torch.from_numpy(selected_gmatrix).float()
+        selected_gmatrix = selected_gmatrix.float()
         selected_edge_labels, edgeweights = self.get_edge_label(selected_points_idxs, selected_labels, selected_gmatrix, self.K)
         return selected_points, selected_labels, selected_edge_labels, edgeweights, selected_gmatrix, selected_points_idxs
     

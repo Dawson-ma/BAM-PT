@@ -5,6 +5,7 @@ import numpy as np
 import logging
 import argparse
 import shutil
+from tqdm import tqdm
 
 import torch
 from torch.utils.data import DataLoader
@@ -20,7 +21,7 @@ from dataset import data_utils as d_utils
 from utils import config
 from utils.tools import cal_IoU_Acc_batch, get_contra_loss, record_statistics
 from PointTransformerV3.model import PointTransformerV3
-from BAM_model import BAM_model
+from BAM_model import BAM_PT
 
 
 def get_parser():
@@ -83,10 +84,11 @@ def main_worker(gpu, ngpus_per_node, test_fold):
     logger.info("=====================> Creating model ...")
     if args.arch == 'IntrA_pointtransformer_seg_repro':
         from models.point_transformer_seg import PointTransformerSemSegmentation as Model
+    elif args.arch == 'BAM_PT_Shapenet':
+        from BAM_model import BAM_PT as Model
     else:
         raise Exception('architecture {} not supported yet'.format(args.arch))
-    #model = Model(args=args).cuda()
-    model = PointTransformerV3().cuda()
+    model = Model(args=args).cuda()
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=args.base_lr,
@@ -96,8 +98,7 @@ def main_worker(gpu, ngpus_per_node, test_fold):
     logger.info("=> Features:{}, Classes: {}".format(args.fea_dim, args.classes))
 
     logger.info("=====================> Loading data ...")
-    if args.data_name == "IntrA":
-        train_transforms = transforms.Compose(
+    train_transforms = transforms.Compose(
             [
                 d_utils.PointcloudToTensor(),
                 d_utils.PointcloudScale(),
@@ -107,7 +108,9 @@ def main_worker(gpu, ngpus_per_node, test_fold):
                 d_utils.PointcloudJitter(),
                 d_utils.PointcloudRandomInputDropout(),
             ]
-        )
+    )
+    
+    if args.data_name == "IntrA":
         train_data = IntrADataset.IntrADataset_PTv3(args.data_root, args.sample_points, args.use_uniform_sample, args.use_normals, 
                     test_fold=test_fold, num_edge_neighbor=args.num_edge_neighbor, mode='train', transform=train_transforms)
         train_loader = DataLoader(train_data, batch_size=args.batch_size_train,
@@ -116,12 +119,25 @@ def main_worker(gpu, ngpus_per_node, test_fold):
                     test_fold=test_fold, num_edge_neighbor=args.num_edge_neighbor, mode='test', transform=None)
         val_loader = DataLoader(val_data, batch_size=args.batch_size_val,
                             shuffle=False, num_workers=args.num_workers, pin_memory=True, drop_last=False)
+    elif args.data_name == "ShapeNet":
+        train_data = ShapeNetDataset.ShapeNetDataset(root=args.data_root, mode="train", transform=train_transforms, 
+                                    pcSize=args.sample_points, uniform=args.use_uniform_sample, 
+                                    use_rgbs=args.use_normals, K=args.num_edge_neighbor)
+        train_loader = DataLoader(train_data, batch_size=args.batch_size_train,
+                            shuffle=True, num_workers=args.num_workers, pin_memory=True, drop_last=True)
+        val_data = ShapeNetDataset.ShapeNetDataset(root=args.data_root, mode="val", transform=train_transforms, 
+                                    pcSize=args.sample_points, uniform=args.use_uniform_sample, 
+                                    use_rgbs=args.use_normals, K=args.num_edge_neighbor)
+        val_loader = DataLoader(val_data, batch_size=args.batch_size_val,
+                            shuffle=False, num_workers=args.num_workers, pin_memory=True, drop_last=False)    
+    
     logger.info("=> Loaded {} training samples, {} testing samples".format(len(train_data), len(val_data)))
 
     logger.info("=====================> Training loop...")
     best_miou = 0
     best_iou_list = []
     for epoch in range(args.start_epoch, args.epochs):
+        print("Now epoch {} starts!".format(epoch))
         record_train = train_one_epoch(train_loader, model, optimizer)
         writer = record_statistics(writer, record_train, mode='train', epoch=epoch)
 
@@ -137,14 +153,14 @@ def main_worker(gpu, ngpus_per_node, test_fold):
             is_best = miou_val > best_miou
             best_miou = miou_val if is_best else best_miou
             best_iou_list = iou_list if is_best else best_iou_list
-            filename = os.path.join(fold_path, 'model_last.pth')
+            filename = os.path.join(fold_path, str(args.sample_points)+'.pth')
             torch.save({'epoch': epoch, 'state_dict' : model.state_dict(), 'optimizer': optimizer.state_dict(), 
                         'scheduler': scheduler.state_dict(), 'best_miou': best_miou, 
                         'best_viou': best_iou_list[0], 'best_aiou': best_iou_list[1]}, filename)
             if is_best:
                 logger.info('Epoch{}: best validation mIoU updated to {:.4f}, vIoU is {:.4f} and aIoU is {:.4f}'.format(
                     epoch, best_miou, best_iou_list[0], best_iou_list[1]))
-                shutil.copyfile(filename, os.path.join(fold_path, 'model_best.pth'))
+                shutil.copyfile(filename, os.path.join(fold_path, str(args.sample_points)+'_best.pth'))
 
     writer.close()
     logger.info("===============test fold {} training done===============\n\
@@ -158,29 +174,28 @@ def train_one_epoch(train_loader, model, optimizer):
 
     loss_avg, loss_seg_avg, loss_seg_refine_avg, loss_edge_avg, loss_contra_avg = 0.0, 0.0, 0.0, 0.0, 0.0
     iou_list, iou_refine_list = [], []
-    for batch_i, (norms, coords, labels, g_mat, idxs) in enumerate(train_loader):
-        batches = np.arange(norms.shape[0])
-        batches = np.tile(batches, (norms.shape[1], 1)).T.flatten()
+    for batch_i, (pts, gts, egts, eweights, gmatrix, idxs) in enumerate(tqdm(train_loader)):
+        batches = np.arange(pts.shape[0])
+        batches = np.tile(batches, (pts.shape[1], 1)).T.flatten()
         batches = torch.tensor(batches).long()
 
-        data_dict = {'batch': batches.cuda(), 'feat': coords.flatten(end_dim=1).cuda().to(torch.float32), 'coord': coords.flatten(end_dim=1)[:,0:3].cuda().to(torch.float32), 'labels': labels.flatten().cuda(), 'grid_size': torch.tensor(0.001).to(torch.float32)}
-        results = model(data_dict)
+        data_dict = {'batch': batches.cuda(), 'feat': pts.flatten(end_dim=1).cuda().to(torch.float32), 'coord': pts.flatten(end_dim=1)[:,0:3].cuda().to(torch.float32), 'labels': gts.flatten().cuda(), 'grid_size': torch.tensor(0.01).to(torch.float32)}
+        pts, gts, egts, eweights, gmatrix = pts.cuda(), gts.cuda(), egts.cuda(), eweights.mean(dim=0).cuda(), gmatrix.cuda()
+        seg_preds, seg_refine_preds, seg_embed, edge_preds = model(data_dict, gmatrix, idxs)
+        loss_seg = F.cross_entropy(seg_preds, gts)
+        loss_seg_refine = F.cross_entropy(seg_refine_preds, gts)
+        loss_edge = F.cross_entropy(edge_preds, egts, weight=eweights)
 
-        #pts, gts, egts, eweights, gmatrix = pts.cuda(), gts.cuda(), egts.cuda(), eweights.mean(dim=0).cuda(), gmatrix.cuda()
-        #seg_preds, seg_refine_preds, seg_embed, edge_preds = model(pts, gmatrix, idxs)
-        loss_seg = F.cross_entropy(results['feat'].reshape(labels.shape[0],labels.shape[1], -1).permute(0,2,1), results['labels'].reshape(labels.shape[0],labels.shape[1]), weight=train_loader.dataset.segweights.cuda())
-        # loss_seg_refine = F.cross_entropy(seg_refine_preds, gts, weight=train_loader.dataset.segweights.cuda())
-        # loss_edge = F.cross_entropy(edge_preds, egts, weight=eweights)
         # loss_contra = get_contra_loss(egts, gts, seg_embed, gmatrix, num_class=args.classes, temp=args.temp)
         # loss = loss_seg + args.weight_refine * loss_seg_refine + args.weight_edge * loss_edge + args.weight_contra * loss_contra
-        loss =  loss_seg
+        loss = loss_seg + args.weight_refine * loss_seg_refine + args.weight_edge * loss_edge
         loss_avg += loss.item()
         loss_seg_avg += loss_seg.item()
-        # loss_seg_refine_avg += loss_seg_refine.item()
-        # loss_edge_avg += loss_edge.item()
+        loss_seg_refine_avg += loss_seg_refine.item()
+        loss_edge_avg += loss_edge.item()
         # loss_contra_avg += loss_contra.item()
-        iou_list.append(cal_IoU_Acc_batch(results['feat'].reshape(labels.shape[0],labels.shape[1], -1).permute(0,2,1), results['labels'].reshape(labels.shape[0],labels.shape[1])))
-        # iou_refine_list.append(cal_IoU_Acc_batch(seg_refine_preds, gts))
+        iou_list.append(cal_IoU_Acc_batch(seg_preds, gts))
+        iou_refine_list.append(cal_IoU_Acc_batch(seg_refine_preds, gts))
 
         optimizer.zero_grad()
         loss_seg.backward()
@@ -190,11 +205,11 @@ def train_one_epoch(train_loader, model, optimizer):
     dataset_len = len(train_loader.dataset)
     record['loss_all'] = loss_avg / dataset_len
     record['loss_seg'] = loss_seg_avg / dataset_len
-    # record['loss_seg_refine'] = loss_seg_refine_avg / dataset_len
-    # record['loss_edge'] = loss_edge_avg / dataset_len
+    record['loss_seg_refine'] = loss_seg_refine_avg / dataset_len
+    record['loss_edge'] = loss_edge_avg / dataset_len
     # record['loss_contra'] = loss_contra_avg / dataset_len
     record['iou_list'] = torch.cat(iou_list, dim=0).mean(dim=0)
-    # record['iou_refine_list'] = torch.cat(iou_refine_list, dim=0).mean(dim=0)
+    record['iou_refine_list'] = torch.cat(iou_refine_list, dim=0).mean(dim=0)
     return record
 
 
@@ -208,47 +223,45 @@ def val_one_epoch(val_loader, model):
         loss_avg, loss_seg_avg, loss_seg_refine_avg, loss_edge_avg, loss_contra_avg = 0.0, 0.0, 0.0, 0.0, 0.0
         iou_avg, iou_refine_avg = [], []
         with torch.no_grad():
-            for batch_idx, (norms, coords, labels, g_mat, idxs) in enumerate(val_loader):
-                batches = np.arange(norms.shape[0])
-                batches = np.tile(batches, (norms.shape[1], 1)).T.flatten()
+            for batch_idx, (pts, gts, egts, eweights, gmatrix, idxs) in enumerate(tqdm(val_loader)):
+                batches = np.arange(pts.shape[0])
+                batches = np.tile(batches, (pts.shape[1], 1)).T.flatten()
                 batches = torch.tensor(batches).long()
 
-                data_dict = {'batch': batches.cuda(), 'feat': coords.flatten(end_dim=1).cuda().to(torch.float32), 'coord': coords.flatten(end_dim=1)[:,0:3].cuda().to(torch.float32), 'labels': labels.flatten().cuda(), 'grid_size': torch.tensor(0.001).to(torch.float32)}
-                results = model(data_dict)
-
-                # pts, gts, egts, eweights, gmatrix = pts.cuda(), gts.cuda(), egts.cuda(), eweights.mean(dim=0).cuda(), gmatrix.cuda()
-                # seg_preds, seg_refine_preds, seg_embed, edge_preds = model(pts, gmatrix, idxs)
-                loss_seg = F.cross_entropy(results['feat'].reshape(labels.shape[0],labels.shape[1], -1).permute(0,2,1), results['labels'].reshape(labels.shape[0],labels.shape[1]), weight=val_loader.dataset.segweights.cuda())
-                #loss_seg_refine = F.cross_entropy(seg_refine_preds, gts, weight=val_loader.dataset.segweights.cuda())
-                # loss_edge = F.cross_entropy(edge_preds, egts, weight=eweights)
+                data_dict = {'batch': batches.cuda(), 'feat': pts.flatten(end_dim=1).cuda().to(torch.float32), 'coord': pts.flatten(end_dim=1)[:,0:3].cuda().to(torch.float32), 'labels': gts.flatten().cuda(), 'grid_size': torch.tensor(0.01).to(torch.float32)}
+                pts, gts, egts, eweights, gmatrix = pts.cuda(), gts.cuda(), egts.cuda(), eweights.mean(dim=0).cuda(), gmatrix.cuda()
+                seg_preds, seg_refine_preds, seg_embed, edge_preds = model(data_dict, gmatrix, idxs)
+                loss_seg = F.cross_entropy(seg_preds, gts)
+                loss_seg_refine = F.cross_entropy(seg_refine_preds, gts)
+                loss_edge = F.cross_entropy(edge_preds, egts, weight=eweights)
                 # loss_contra = get_contra_loss(egts, gts, seg_embed, gmatrix, num_class=args.classes, temp=args.temp)
                 # loss = loss_seg + args.weight_refine * loss_seg_refine + args.weight_edge * loss_edge + args.weight_contra * loss_contra
-                loss = loss_seg
+                loss = loss_seg + args.weight_refine * loss_seg_refine + args.weight_edge * loss_edge
                 loss_avg += loss.item()
                 loss_seg_avg += loss_seg.item()
-                # loss_seg_refine_avg += loss_seg_refine.item()
-                # loss_edge_avg += loss_edge.item()
+                loss_seg_refine_avg += loss_seg_refine.item()
+                loss_edge_avg += loss_edge.item()
                 # loss_contra_avg += loss_contra.item()
-                iou_avg.append(cal_IoU_Acc_batch(results['feat'].reshape(labels.shape[0],labels.shape[1], -1).permute(0,2,1), results['labels'].reshape(labels.shape[0],labels.shape[1]).to(torch.float32)))
-                # iou_refine_avg.append(cal_IoU_Acc_batch(seg_refine_preds, gts))
+                iou_avg.append(cal_IoU_Acc_batch(seg_preds, gts))
+                iou_refine_avg.append(cal_IoU_Acc_batch(seg_refine_preds, gts))
 
             dataset_len = len(val_loader.dataset)
             loss_avg_list.append(loss_avg / dataset_len)
             loss_seg_avg_list.append(loss_seg_avg / dataset_len)
-            # loss_seg_refine_avg_list.append(loss_seg_refine_avg / dataset_len)
-            # loss_edge_avg_list.append(loss_edge_avg / dataset_len)
+            loss_seg_refine_avg_list.append(loss_seg_refine_avg / dataset_len)
+            loss_edge_avg_list.append(loss_edge_avg / dataset_len)
             # loss_contra_avg_list.append(loss_contra_avg / dataset_len)
             iou_avg_list.append(torch.cat(iou_avg, dim=0).mean(dim=0))
-            # iou_refine_avg_list.append(torch.cat(iou_refine_avg, dim=0).mean(dim=0))
+            iou_refine_avg_list.append(torch.cat(iou_refine_avg, dim=0).mean(dim=0))
     
     record = {}
     record['loss_all'] = np.mean(loss_avg_list)
     record['loss_seg'] = np.mean(loss_seg_avg_list)
-    # record['loss_seg_refine'] = np.mean(loss_seg_refine_avg_list)
-    # record['loss_edge'] = np.mean(loss_edge_avg_list)
+    record['loss_seg_refine'] = np.mean(loss_seg_refine_avg_list)
+    record['loss_edge'] = np.mean(loss_edge_avg_list)
     # record['loss_contra'] = np.mean(loss_contra_avg_list)
     record['iou_list'] = torch.stack(iou_avg_list, dim=0).mean(dim=0)
-    # record['iou_refine_list'] = torch.stack(iou_refine_avg_list, dim=0).mean(dim=0)
+    record['iou_refine_list'] = torch.stack(iou_refine_avg_list, dim=0).mean(dim=0)
     return record
 
 if __name__ == "__main__":
