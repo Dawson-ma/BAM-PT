@@ -963,8 +963,12 @@ class PointTransformerV3(PointModule):
                     )
                 self.dec.add(module=dec, name=f"dec{s}")
 
-        self.linear1 = nn.Linear(dec_channels[0], dec_channels[0])
-        self.linear2 = nn.Linear(dec_channels[0], 2)
+        self.seg_fc = nn.Sequential(
+            nn.Linear(dec_channels[0], dec_channels[0], bias=False),
+            bn_layer(dec_channels[0]),
+            act_layer(),
+            nn.Linear(dec_channels[0], 2),
+        )
 
     def forward(self, data_dict):
         """
@@ -983,5 +987,5 @@ class PointTransformerV3(PointModule):
         if not self.cls_mode:
             point = self.dec(point)
 
-        point.feat = self.linear2(nn.functional.relu(self.linear1(point.feat)))
+        point.feat = self.seg_fc(point.feat)
         return point

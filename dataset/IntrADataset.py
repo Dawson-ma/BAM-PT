@@ -253,10 +253,10 @@ class IntrADataset_PTv3(Dataset):
         
         selected_edge_labels, edgeweights = self.get_edge_label(selected_points_idxs, selected_labels, selected_gmatrix, self.num_edge_neighbor)
 
-        #return selected_points, selected_labels, selected_edge_labels, edgeweights, selected_gmatrix, selected_points_idxs
+        return selected_points, selected_labels, selected_edge_labels, edgeweights, selected_gmatrix, selected_points_idxs
 
         #dict_data={'features': selected_normals, 'labels': selected_labels, 'grid_coord': selected_points}
-        return selected_normals, selected_points, selected_labels, selected_gmatrix, selected_points_idxs
+        #return selected_normals, selected_points, selected_labels, selected_gmatrix, selected_points_idxs
             
     
 

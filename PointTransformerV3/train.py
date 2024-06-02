@@ -160,17 +160,18 @@ def train_one_epoch(train_loader, model, optimizer):
 
     loss_avg, loss_seg_avg, loss_seg_refine_avg, loss_edge_avg, loss_contra_avg = 0.0, 0.0, 0.0, 0.0, 0.0
     iou_list, iou_refine_list = [], []
-    for batch_i, (norms, coords, labels, g_mat, idxs) in enumerate(train_loader):
-        batches = np.arange(norms.shape[0])
-        batches = np.tile(batches, (norms.shape[1], 1)).T.flatten()
+    for batch_i, (coords, labels, edge_labels, eweights, g_mat, idxs) in enumerate(train_loader):
+        batches = np.arange(coords.shape[0])
+        batches = np.tile(batches, (coords.shape[1], 1)).T.flatten()
         batches = torch.tensor(batches).long()
 
-        data_dict = {'batch': batches.cuda(), 'feat': coords.flatten(end_dim=1).cuda().to(torch.float32), 'coord': coords.flatten(end_dim=1)[:,0:3].cuda().to(torch.float32), 'labels': labels.flatten().cuda(), 'grid_size': torch.tensor(0.001).to(torch.float32)}
+        data_dict = {'batch': batches.cuda(), 'feat': coords.flatten(end_dim=1).cuda().to(torch.float32), 'coord': coords.flatten(end_dim=1)[:,0:3].cuda().to(torch.float32), 'labels': labels.flatten().cuda(), 'grid_size': torch.tensor(0.0001).to(torch.float32)}
         results = model(data_dict)
+
 
         #pts, gts, egts, eweights, gmatrix = pts.cuda(), gts.cuda(), egts.cuda(), eweights.mean(dim=0).cuda(), gmatrix.cuda()
         #seg_preds, seg_refine_preds, seg_embed, edge_preds = model(pts, gmatrix, idxs)
-        loss_seg = F.cross_entropy(results['feat'].reshape(labels.shape[0],labels.shape[1], -1).permute(0,2,1), results['labels'].reshape(labels.shape[0],labels.shape[1]), weight=train_loader.dataset.segweights.cuda())
+        loss_seg = F.cross_entropy(results['feat'].reshape(labels.shape[0],labels.shape[1], -1).permute(0,2,1), labels.cuda(), weight=train_loader.dataset.segweights.cuda())
         # loss_seg_refine = F.cross_entropy(seg_refine_preds, gts, weight=train_loader.dataset.segweights.cuda())
         # loss_edge = F.cross_entropy(edge_preds, egts, weight=eweights)
         # loss_contra = get_contra_loss(egts, gts, seg_embed, gmatrix, num_class=args.classes, temp=args.temp)
@@ -181,7 +182,7 @@ def train_one_epoch(train_loader, model, optimizer):
         # loss_seg_refine_avg += loss_seg_refine.item()
         # loss_edge_avg += loss_edge.item()
         # loss_contra_avg += loss_contra.item()
-        iou_list.append(cal_IoU_Acc_batch(results['feat'].reshape(labels.shape[0],labels.shape[1], -1).permute(0,2,1), results['labels'].reshape(labels.shape[0],labels.shape[1])))
+        iou_list.append(cal_IoU_Acc_batch(results['feat'].reshape(labels.shape[0],labels.shape[1], -1).permute(0,2,1), labels.cuda()))
         # iou_refine_list.append(cal_IoU_Acc_batch(seg_refine_preds, gts))
 
         optimizer.zero_grad()
@@ -210,17 +211,18 @@ def val_one_epoch(val_loader, model):
         loss_avg, loss_seg_avg, loss_seg_refine_avg, loss_edge_avg, loss_contra_avg = 0.0, 0.0, 0.0, 0.0, 0.0
         iou_avg, iou_refine_avg = [], []
         with torch.no_grad():
-            for batch_idx, (norms, coords, labels, g_mat, idxs) in enumerate(val_loader):
-                batches = np.arange(norms.shape[0])
-                batches = np.tile(batches, (norms.shape[1], 1)).T.flatten()
+            for batch_idx, (coords, labels, edge_labels, eweights, g_mat, idxs) in enumerate(val_loader):
+                batches = np.arange(coords.shape[0])
+                batches = np.tile(batches, (coords.shape[1], 1)).T.flatten()
                 batches = torch.tensor(batches).long()
 
-                data_dict = {'batch': batches.cuda(), 'feat': coords.flatten(end_dim=1).cuda().to(torch.float32), 'coord': coords.flatten(end_dim=1)[:,0:3].cuda().to(torch.float32), 'labels': labels.flatten().cuda(), 'grid_size': torch.tensor(0.001).to(torch.float32)}
+                data_dict = {'batch': batches.cuda(), 'feat': coords.flatten(end_dim=1).cuda().to(torch.float32), 'coord': coords.flatten(end_dim=1)[:,0:3].cuda().to(torch.float32), 'labels': labels.flatten().cuda(), 'grid_size': torch.tensor(0.0001).to(torch.float32)}
                 results = model(data_dict)
 
                 # pts, gts, egts, eweights, gmatrix = pts.cuda(), gts.cuda(), egts.cuda(), eweights.mean(dim=0).cuda(), gmatrix.cuda()
                 # seg_preds, seg_refine_preds, seg_embed, edge_preds = model(pts, gmatrix, idxs)
-                loss_seg = F.cross_entropy(results['feat'].reshape(labels.shape[0],labels.shape[1], -1).permute(0,2,1), results['labels'].reshape(labels.shape[0],labels.shape[1]), weight=val_loader.dataset.segweights.cuda())
+
+                loss_seg = F.cross_entropy(results['feat'].reshape(labels.shape[0],labels.shape[1], -1).permute(0,2,1), labels.cuda(), weight=val_loader.dataset.segweights.cuda())
                 #loss_seg_refine = F.cross_entropy(seg_refine_preds, gts, weight=val_loader.dataset.segweights.cuda())
                 # loss_edge = F.cross_entropy(edge_preds, egts, weight=eweights)
                 # loss_contra = get_contra_loss(egts, gts, seg_embed, gmatrix, num_class=args.classes, temp=args.temp)
@@ -231,7 +233,7 @@ def val_one_epoch(val_loader, model):
                 # loss_seg_refine_avg += loss_seg_refine.item()
                 # loss_edge_avg += loss_edge.item()
                 # loss_contra_avg += loss_contra.item()
-                iou_avg.append(cal_IoU_Acc_batch(results['feat'].reshape(labels.shape[0],labels.shape[1], -1).permute(0,2,1), results['labels'].reshape(labels.shape[0],labels.shape[1]).to(torch.float32)))
+                iou_avg.append(cal_IoU_Acc_batch(results['feat'].reshape(labels.shape[0],labels.shape[1], -1).permute(0,2,1), labels.cuda().to(torch.float32)))
                 # iou_refine_avg.append(cal_IoU_Acc_batch(seg_refine_preds, gts))
 
             dataset_len = len(val_loader.dataset)
