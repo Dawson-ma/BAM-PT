@@ -90,6 +90,8 @@ Norm:
 [2024-06-01 02:49:48,651 INFO train.py line 69 5637] => Final mIoU is 0.9289, vIoU is 0.9673, aIoU is 0.8906
 
 Ablate:
+        Best mIoU is 0.9234, vIoU is 0.9698, aIoU is 0.8769
+[2024-06-02 21:21:03,105 INFO train.py line 69 5636] => Final mIoU is 0.9214, vIoU is 0.9642, aIoU is 0.8786
 
 
 2048:
