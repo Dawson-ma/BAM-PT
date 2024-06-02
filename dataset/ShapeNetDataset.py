@@ -18,8 +18,8 @@ def pc_normalize(pc):
     return pc
 
 class ShapeNetDataset(Dataset):
-    def __init__(self, root="shapenet", mode='train', transform=None, pcSize=None,
-                 uniform=False, use_norms=False, K=4, perturbed=False, radius=0.2):
+    def __init__(self, root="shapenet_norm", mode='train', transform=None, pcSize=None,
+                 uniform=False, use_norms=False, K=15, perturbed=False, radius=0.2):
         self.root = root
         self.mode = mode
         self.transform = transform
@@ -40,18 +40,17 @@ class ShapeNetDataset(Dataset):
         return len(self.data)
     
     def __getitem__(self, index):
-        
         # Data loading
         fileName = os.path.join(self.root, self.data[index][0], self.data[index][1]+'.txt')
         data = np.loadtxt(fileName)
         
         points = data[:, :3]
-        rgbs = data[:, 3:-1]
-        # norms = getNorm(points)
+        rgbs = data[:, 3:6]
+        norms = data[:, 6:-1]
         labels = data[:, -1]
         
         if self.perturbed:
-            points, rgbs, labels, norms = make_perturbed(points, rgbs, labels, radius=self.radius, norms=None)
+            points, rgbs, norms, labels = make_perturbed(points, rgbs, norms, labels, radius=self.radius)
         
         N = points.shape[0]
         point_idxs = range(N)
@@ -73,13 +72,13 @@ class ShapeNetDataset(Dataset):
             
         selected_points = points[selected_points_idxs]
         selected_rgbs = rgbs[selected_points_idxs]
-        # selected_norms = norms[selected_points_idxs]
+        selected_norms = norms[selected_points_idxs]
         selected_gmatrix = gmatrix[selected_points_idxs, :][:, selected_points_idxs]
         selected_labels = labels[selected_points_idxs]
             
         selected_points = pc_normalize(selected_points)
         if self.use_norms:
-            selected_points = np.concatenate((selected_points, selected_rgbs), axis=1)
+            selected_points = np.concatenate((selected_points, selected_norms), axis=1)
         if self.transform is not None:
             selected_points = self.transform(selected_points).float()
         else:
@@ -95,10 +94,11 @@ class ShapeNetDataset(Dataset):
         unique_labels = labels[indices]
         unique_gmatrix = gmatrix[indices, :][:, indices]
         edge_labels = torch.zeros(unique_labels.shape[0])
-        idxs_neighbor = unique_gmatrix.argsort(dim=-1)[:, :k] # (N, K)
-        gts_neighbor = torch.gather(unique_labels[None, :].repeat(idxs_neighbor.shape[0], 1), 1, idxs_neighbor) # (N, K)
-        gts_neighbor_sum = gts_neighbor.sum(dim=-1)
-        edge_mask = torch.logical_and(gts_neighbor_sum!=0, gts_neighbor_sum!=k)
+        idxs_neighbor = unique_gmatrix.argsort(dim=-1)[:, :k+1] # (N, K+1)
+        gts_neighbor = torch.gather(unique_labels[None, :].repeat(idxs_neighbor.shape[0], 1), 1, idxs_neighbor) # (N, K+1)
+
+        # edge_mask = torch.logical_and(gts_neighbor_sum!=0, gts_neighbor_sum!=k)
+        edge_mask = torch.sum(gts_neighbor != unique_labels[:, None], 1) >= 0.8 * k
         edge_labels[edge_mask] = 1
         edge_labels = edge_labels[reverse_indices]
         edgeweights = torch.histc(edge_labels, bins=2, min=0, max=1)

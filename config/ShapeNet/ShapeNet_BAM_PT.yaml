@@ -1,6 +1,6 @@
 DATA:
   data_name: ShapeNet
-  data_root: dataset/shapenet/
+  data_root: dataset/shapenet_norm/
   sample_points: 512
   use_uniform_sample: True
   use_normals: True

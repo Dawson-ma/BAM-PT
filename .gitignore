@@ -40,6 +40,7 @@ pc
 *.pth
 *.whl
 shapenet
+shapenet_norm
 IntrA
 modelnet40_normal_resampled
 point_transformer_lib

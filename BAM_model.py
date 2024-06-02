@@ -56,7 +56,3 @@ class BAM_PT(nn.Module):
         seg_refine_preds = self.seg_refine_fc_layer(seg_refine_features.transpose(1, 2).contiguous())
         seg_embed = F.normalize(self.proj_layer(seg_feat), p=2, dim=1)
         return seg_pred, seg_refine_preds, seg_embed, edge_pred
-        
-        
-        
-        
