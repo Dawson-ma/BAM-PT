@@ -216,9 +216,11 @@ def val_one_epoch(val_loader, model):
             for batch_idx, (pts, gts, egts, eweights, gmatrix, idxs) in enumerate(val_loader):
                 pts, gts, egts, eweights, gmatrix = pts.cuda(), gts.cuda(), egts.cuda(), eweights.mean(dim=0).cuda(), gmatrix.cuda()
                 if args.record_time:
+                    torch.cuda.synchronize()
                     start_time = time.time()
                 seg_preds, seg_refine_preds, seg_embed, edge_preds = model(pts, gmatrix, idxs)
                 if args.record_time:
+                    torch.cuda.synchronize()
                     end_time = time.time()
                     time_avg += end_time - start_time
                 loss_seg = F.cross_entropy(seg_preds, gts, weight=val_loader.dataset.segweights.cuda())

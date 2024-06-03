@@ -125,14 +125,25 @@ Without EPT:
                 Best mIoU is 0.9121, vIoU is 0.9576, aIoU is 0.8665
 
 
-
 ## Processing Time
 
 ### EPT
 
 Normal: 
 
+| Points    | Time/batch |
+| -------- | :-------: |
+| 512  | 0.0103    |
+| 1024 | 0.0124    |
+| 2048 | 0.0219   |
+
 Ablate: 
+
+| Points    | Time/batch |
+| -------- | :-------: |
+| 512  | 0.0049   |
+| 1024 | 0.0124    |
+| 2048 | 0.0104   |
 
 
 ### PTV3
@@ -140,6 +151,12 @@ Ablate:
 With EPT: 
 
 WIthout EPT: 
+
+| Points    | Time/batch |
+| -------- | :-------: |
+| 512  | 0.0770 |
+| 1024 | 0.0774  |
+| 2048 | 0.0104   |
 
 
 
