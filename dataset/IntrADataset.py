@@ -156,6 +156,8 @@ class IntrADataset(Dataset):
         gts_neighbor_sum = gts_neighbor.sum(dim=-1)
         edge_mask = torch.logical_and(gts_neighbor_sum!=0, gts_neighbor_sum!=k)
         edge_labels[edge_mask] = 1
+        if torch.sum(edge_labels) == 512:
+            print("What the fuck is this?")
         edge_labels = edge_labels[reverse_indices]
         edgeweights = torch.histc(edge_labels, bins=2, min=0, max=1)
         edgeweights = edgeweights / torch.sum(edgeweights)

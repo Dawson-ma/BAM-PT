@@ -3,6 +3,8 @@ from point_transformer_lib.point_transformer_ops.point_transformer_modules impor
 from torch import nn as nn
 from utils.timer import Timer
 import torch.nn.functional as F
+import torch
+import numpy as np
 
 class STN3d(nn.Module):
     def __init__(self):
@@ -119,18 +121,12 @@ class BAM_PT(nn.Module):
         
     def forward(self, pts, gts, gmatrix, idxs):
         
-        x, normals = pts[:, :, :3]. pts[:, :, 3:]
+        x, normals = pts[:, :, :3], pts[:, :, 3:]
         
+        x = x.transpose(2, 1)
         trans1 = self.pointCloudSTN(x)
         x = x.transpose(2, 1)
         x = torch.bmm(x, trans1)
-        x = x.transpose(2, 1)
-        x = self.relu(self.bn1(self.conv1(x)))
-        
-        trans2 = self.featureSTN(x)
-        x = x.transpose(2, 1)
-        x = torch.bmm(x, trans2)
-        x = x.transpose(2,1)
         
         # Create dict
         batches = np.arange(pts.shape[0])

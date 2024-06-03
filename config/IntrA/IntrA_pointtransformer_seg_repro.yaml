@@ -16,7 +16,7 @@ TRAIN:
   arch: IntrA_pointtransformer_seg_repro
   use_xyz: True
   sync_bn: False
-  cls_num: 50
+  cls_num: 2
   feat_dim: 2
   folds: [0, 1, 2, 3, 4]
   train_gpu: [0]
