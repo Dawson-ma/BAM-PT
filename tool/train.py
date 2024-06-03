@@ -257,14 +257,14 @@ def val_one_epoch(val_loader, model):
     
     record = {}
     record['loss_all'] = np.mean(loss_avg_list)
-    record['loss_seg'] = np.mean(loss_seg_avg_list)
-    record['loss_seg_refine'] = np.mean(loss_seg_refine_avg_list)
-    record['loss_edge'] = np.mean(loss_edge_avg_list)
-    record['loss_contra'] = np.mean(loss_contra_avg_list)
     record['iou_list'] = torch.stack(iou_avg_list, dim=0).mean(dim=0)
     if args.record_time:
         record['time'] = time_avg
     if not args.ablation:
+        record['loss_seg'] = np.mean(loss_seg_avg_list)
+        record['loss_seg_refine'] = np.mean(loss_seg_refine_avg_list)
+        record['loss_edge'] = np.mean(loss_edge_avg_list)
+        record['loss_contra'] = np.mean(loss_contra_avg_list)
         record['iou_refine_list'] = torch.stack(iou_refine_avg_list, dim=0).mean(dim=0)
     return record
 
