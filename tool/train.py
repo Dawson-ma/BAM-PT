@@ -139,6 +139,8 @@ def main_worker(gpu, ngpus_per_node, test_fold):
             torch.save({'epoch': epoch, 'state_dict' : model.state_dict(), 'optimizer': optimizer.state_dict(), 
                         'scheduler': scheduler.state_dict(), 'best_miou': best_miou, 
                         'best_viou': best_iou_list[0], 'best_aiou': best_iou_list[1]}, filename)
+            if args.record_time:
+                logger.info('Epoch{}: time is {:.4f}'.format(epoch, record_val['time']))
             if is_best:
                 logger.info('Epoch{}: best validation mIoU updated to {:.4f}, vIoU is {:.4f} and aIoU is {:.4f}'.format(
                     epoch, best_miou, best_iou_list[0], best_iou_list[1]))
