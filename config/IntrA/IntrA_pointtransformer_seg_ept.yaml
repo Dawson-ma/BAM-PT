@@ -13,6 +13,7 @@ MODEL:
   downsampling_ratio: 0.5
 
 TRAIN:
+  record_time: True
   arch: IntrA_pointtransformer_seg_repro
   use_xyz: True
   sync_bn: False

@@ -72,37 +72,74 @@ If you find this work useful for your research, please cite our paper:
 }
 ```
 
-## Results
-512:
+## Results EPT
+
+### 512:
 
 Norm:
+
         Best mIoU is 0.9313, vIoU is 0.9748, aIoU is 0.8879
 [2024-06-01 04:00:24,833 INFO train.py line 69 5643] => Final mIoU is 0.9294, vIoU is 0.9672, aIoU is 0.8915
 
 Ablate:
+
         Best mIoU is 0.9234, vIoU is 0.9713, aIoU is 0.8755
 [2024-06-01 04:24:44,633 INFO train.py line 69 5645] => Final mIoU is 0.9204, vIoU is 0.9632, aIoU is 0.8775
 
-1024:
+### 1024:
 
 Norm:
+
         Best mIoU is 0.9220, vIoU is 0.9661, aIoU is 0.8780
 [2024-06-01 02:49:48,651 INFO train.py line 69 5637] => Final mIoU is 0.9289, vIoU is 0.9673, aIoU is 0.8906
 
 Ablate:
+
         Best mIoU is 0.9234, vIoU is 0.9698, aIoU is 0.8769
 [2024-06-02 21:21:03,105 INFO train.py line 69 5636] => Final mIoU is 0.9214, vIoU is 0.9642, aIoU is 0.8786
 
 
-2048:
+### 2048:
 
 Norm:
+
         Best mIoU is 0.9186, vIoU is 0.9638, aIoU is 0.8734
 [2024-06-01 08:34:51,107 INFO train.py line 69 5645] => Final mIoU is 0.9182, vIoU is 0.9616, aIoU is 0.8748
 
 Ablate:
+
         Best mIoU is 0.9196, vIoU is 0.9647, aIoU is 0.8744
 [2024-06-01 08:17:35,104 INFO train.py line 69 5637] => Final mIoU is 0.9157, vIoU is 0.9611, aIoU is 0.8704
+
+
+## Results PTV3
+
+### 512:
+
+With EPT:
+
+                Best mIoU is 0.9318, vIoU is 0.9689, aIoU is 0.8947
+
+Without EPT:
+
+                Best mIoU is 0.9121, vIoU is 0.9576, aIoU is 0.8665
+
+
+
+## Processing Time
+
+### EPT
+
+Normal: 
+
+Ablate: 
+
+
+### PTV3
+
+With EPT: 
+
+WIthout EPT: 
 
 
 

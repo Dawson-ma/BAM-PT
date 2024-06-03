@@ -19,6 +19,7 @@ import dataset.data_utils as d_utils
 
 from utils import config
 from utils.tools import cal_IoU_Acc_batch, get_contra_loss, record_statistics
+import time
 
 
 def get_parser():
@@ -155,6 +156,7 @@ def train_one_epoch(train_loader, model, optimizer):
 
     loss_avg, loss_seg_avg, loss_seg_refine_avg, loss_edge_avg, loss_contra_avg = 0.0, 0.0, 0.0, 0.0, 0.0
     iou_list, iou_refine_list = [], []
+
     for batch_i, (pts, gts, egts, eweights, gmatrix, idxs) in enumerate(train_loader):
         pts, gts, egts, eweights, gmatrix = pts.cuda(), gts.cuda(), egts.cuda(), eweights.mean(dim=0).cuda(), gmatrix.cuda()
         seg_preds, seg_refine_preds, seg_embed, edge_preds = model(pts, gmatrix, idxs)
@@ -183,6 +185,7 @@ def train_one_epoch(train_loader, model, optimizer):
         loss.backward()
         optimizer.step()
     
+
     record = {}
     dataset_len = len(train_loader.dataset)
     record['loss_all'] = loss_avg / dataset_len
@@ -205,10 +208,17 @@ def val_one_epoch(val_loader, model):
     for i in range(args.num_votes):
         loss_avg, loss_seg_avg, loss_seg_refine_avg, loss_edge_avg, loss_contra_avg = 0.0, 0.0, 0.0, 0.0, 0.0
         iou_avg, iou_refine_avg = [], []
+        if args.record_time:
+            time_avg = 0.0        
         with torch.no_grad():
             for batch_idx, (pts, gts, egts, eweights, gmatrix, idxs) in enumerate(val_loader):
                 pts, gts, egts, eweights, gmatrix = pts.cuda(), gts.cuda(), egts.cuda(), eweights.mean(dim=0).cuda(), gmatrix.cuda()
+                if args.record_time:
+                    start_time = time.time()
                 seg_preds, seg_refine_preds, seg_embed, edge_preds = model(pts, gmatrix, idxs)
+                if args.record_time:
+                    end_time = time.time()
+                    time_avg += end_time - start_time
                 loss_seg = F.cross_entropy(seg_preds, gts, weight=val_loader.dataset.segweights.cuda())
 
                 if not args.ablation:
@@ -231,6 +241,8 @@ def val_one_epoch(val_loader, model):
 
             dataset_len = len(val_loader.dataset)
             loss_avg_list.append(loss_avg / dataset_len)
+            if args.record_time:
+                time_avg = time_avg / dataset_len
             iou_avg_list.append(torch.cat(iou_avg, dim=0).mean(dim=0))
             if not args.ablation:
                 loss_seg_avg_list.append(loss_seg_avg / dataset_len)
@@ -246,6 +258,8 @@ def val_one_epoch(val_loader, model):
     record['loss_edge'] = np.mean(loss_edge_avg_list)
     record['loss_contra'] = np.mean(loss_contra_avg_list)
     record['iou_list'] = torch.stack(iou_avg_list, dim=0).mean(dim=0)
+    if args.record_time:
+        record['time'] = time_avg
     if not args.ablation:
         record['iou_refine_list'] = torch.stack(iou_refine_avg_list, dim=0).mean(dim=0)
     return record
