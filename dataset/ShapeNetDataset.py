@@ -19,7 +19,7 @@ def pc_normalize(pc):
 
 class ShapeNetDataset(Dataset):
     def __init__(self, root="shapenet_norm", mode='train', transform=None, pcSize=None,
-                 uniform=False, use_norms=False, K=15, perturbed=False, radius=0.2):
+                 uniform=False, use_norms=False, K=20, perturbed=False, radius=0.2):
         self.root = root
         self.mode = mode
         self.transform = transform
@@ -98,7 +98,7 @@ class ShapeNetDataset(Dataset):
         gts_neighbor = torch.gather(unique_labels[None, :].repeat(idxs_neighbor.shape[0], 1), 1, idxs_neighbor) # (N, K+1)
 
         # edge_mask = torch.logical_and(gts_neighbor_sum!=0, gts_neighbor_sum!=k)
-        edge_mask = torch.sum(gts_neighbor != unique_labels[:, None], 1) >= 0.8 * k
+        edge_mask = torch.sum(gts_neighbor != unique_labels[:, None], 1) >= 0.5 * k
         edge_labels[edge_mask] = 1
         edge_labels = edge_labels[reverse_indices]
         edgeweights = torch.histc(edge_labels, bins=2, min=0, max=1)
