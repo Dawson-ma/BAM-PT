@@ -33,15 +33,15 @@ class PTV3_EPT(PointTransformerV3):
     self,
     in_channels=6,
     order=("z", "z-trans", "hilbert", "hilbert-trans"),
-    stride=(2, 2, 2, 2),
-    enc_depths=(2, 2, 2, 6, 2),
-    enc_channels=(32, 64, 128, 256, 512),
-    enc_num_head=(2, 4, 8, 16, 32),
-    enc_patch_size=(1024, 1024, 1024, 1024, 1024),
-    dec_depths=(2, 2, 2, 2),
-    dec_channels=(64, 64, 128, 256),
-    dec_num_head=(4, 4, 8, 16),
-    dec_patch_size=(1024, 1024, 1024, 1024),
+    stride=(2, 2, 2),
+    enc_depths=(2, 2, 2, 2),
+    enc_channels=(32, 64, 128, 256),
+    enc_num_head=(2, 2, 2, 2),
+    enc_patch_size=(1024, 1024, 1024, 1024),
+    dec_depths=(2, 2, 2),
+    dec_channels=(32, 64, 128),
+    dec_num_head=(2, 2, 2),
+    dec_patch_size=(1024, 1024, 1024),
     mlp_ratio=4,
     qkv_bias=True,
     qk_scale=None,
@@ -137,7 +137,7 @@ class PTV3_EPT(PointTransformerV3):
 
         self.BFM = BFM_torch(dec_channels[0], dec_channels[0], args.n_neighbors)
 
-    def forward(self, data_dict, gmatrix, idxs, batch_size=8, num_points=512):
+    def forward(self, data_dict, gmatrix, idxs, batch_size=8, num_points=512, timeit=False):
         """
         A data_dict is a dictionary containing properties of a batched point cloud.
         It should contain the following properties for PTv3:
@@ -149,6 +149,9 @@ class PTV3_EPT(PointTransformerV3):
         point.serialization(order=self.order, shuffle_orders=self.shuffle_orders)
         point.sparsify()
 
+        if timeit:
+            torch.cuda.synchronize()
+            start = time.time()
         point = self.embedding(point)
         point = self.enc(point)
         if not self.cls_mode:
@@ -162,6 +165,10 @@ class PTV3_EPT(PointTransformerV3):
         seg_refine_preds = self.seg_refine_fc(seg_refine_features.contiguous()).transpose(1, 2)
 
         seg_embed = F.normalize(self.proj_layer(point_seg.feat), p=2, dim=1).reshape(batch_size, num_points, -1).transpose(1, 2)
+        if timeit:
+            torch.cuda.synchronize()
+            time_taken = time.time() - start
+            return point_seg, None, seg_refine_preds, seg_embed, point_edge_pred, point_pred, time_taken
 
         return point_seg, None, seg_refine_preds, seg_embed, point_edge_pred, point_pred
 
@@ -230,7 +237,7 @@ def main_worker(gpu, ngpus_per_node, test_fold):
     else:
         raise Exception('architecture {} not supported yet'.format(args.arch))
     #model = Model(args=args).cuda()
-    model = PTV3_EPT(args=args).cuda()
+    model = PTV3_EPT(enc_patch_size=[args.npoints] * 4, dec_patch_size=[args.npoints] * 3,args=args).cuda()
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=args.base_lr,
@@ -285,6 +292,8 @@ def main_worker(gpu, ngpus_per_node, test_fold):
             torch.save({'epoch': epoch, 'state_dict' : model.state_dict(), 'optimizer': optimizer.state_dict(), 
                         'scheduler': scheduler.state_dict(), 'best_miou': best_miou, 
                         'best_viou': best_iou_list[0], 'best_aiou': best_iou_list[1]}, filename)
+            if args.record_time:
+                logger.info('Epoch{}: time is {:.4f}'.format(epoch, record_val['time_avg']))
             if is_best:
                 logger.info('Epoch{}: best validation mIoU updated to {:.4f}, vIoU is {:.4f} and aIoU is {:.4f}'.format(
                     epoch, best_miou, best_iou_list[0], best_iou_list[1]))
@@ -351,6 +360,8 @@ def val_one_epoch(val_loader, model):
     for i in range(args.num_votes):
         loss_avg, loss_seg_avg, loss_seg_refine_avg, loss_edge_avg, loss_contra_avg = 0.0, 0.0, 0.0, 0.0, 0.0
         iou_avg, iou_refine_avg = [], []
+        if args.record_time:
+            time_avg = 0.0
         with torch.no_grad():
             for batch_i, (coords, labels, edge_labels, eweights, g_mat, idxs) in enumerate(val_loader):
                 batches = np.arange(coords.shape[0])
@@ -358,7 +369,12 @@ def val_one_epoch(val_loader, model):
                 batches = torch.tensor(batches).long()
 
                 data_dict = {'batch': batches.cuda(), 'feat': coords.flatten(end_dim=1).cuda().to(torch.float32), 'coord': coords.flatten(end_dim=1)[:,0:3].cuda().to(torch.float32), 'labels': labels.flatten().cuda(), 'grid_size': torch.tensor(0.0001).to(torch.float32)}
-                results, point_edge, seg_refine_preds, seg_embed, point_edge_feat, point_feat = model(data_dict, g_mat.cuda(), idxs, batch_size = labels.shape[0], num_points = labels.shape[1])
+                g_mat = g_mat.cuda()
+                if args.record_time:
+                    results, point_edge, seg_refine_preds, seg_embed, point_edge_feat, point_feat, time_taken = model(data_dict, g_mat, idxs, batch_size = labels.shape[0], num_points = labels.shape[1], timeit = args.record_time)
+                    time_avg += time_taken
+                else:
+                    results, point_edge, seg_refine_preds, seg_embed, point_edge_feat, point_feat = model(data_dict, g_mat, idxs, batch_size = labels.shape[0], num_points = labels.shape[1])
                     # pts, gts, egts, eweights, gmatrix = pts.cuda(), gts.cuda(), egts.cuda(), eweights.mean(dim=0).cuda(), gmatrix.cuda()
                 # seg_preds, seg_refine_preds, seg_embed, edge_preds = model(pts, gmatrix, idxs)
                 loss_seg = F.cross_entropy(point_feat.reshape(labels.shape[0],labels.shape[1], -1).permute(0,2,1), results['labels'].reshape(labels.shape[0],labels.shape[1]), weight=val_loader.dataset.segweights.cuda())
@@ -377,6 +393,8 @@ def val_one_epoch(val_loader, model):
 
 
             dataset_len = len(val_loader.dataset)
+            if args.record_time:
+                time_avg /= dataset_len
             loss_avg_list.append(loss_avg / dataset_len)
             loss_seg_avg_list.append(loss_seg_avg / dataset_len)
             loss_seg_refine_avg_list.append(loss_seg_refine_avg / dataset_len)
@@ -393,6 +411,8 @@ def val_one_epoch(val_loader, model):
     record['loss_contra'] = np.mean(loss_contra_avg_list)
     record['iou_list'] = torch.stack(iou_avg_list, dim=0).mean(dim=0)
     record['iou_refine_list'] = torch.stack(iou_refine_avg_list, dim=0).mean(dim=0)
+    if args.record_time:
+        record['time_avg'] = time_avg
     return record
 
 
