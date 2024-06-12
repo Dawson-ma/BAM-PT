@@ -30,22 +30,30 @@ Create one foler data in the code respository and add one symbolic link
 Step-by-step installation
 ```bash
 # create python environment
-conda create -n ept python=3.7
+conda create -n ept python=3.11
 conda activate ept
-
-# install dependencies
-conda install pytorch==1.7.0 torchvision==0.8.0 torchaudio==0.7.0 cudatoolkit=10.1 -c pytorch
+conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia -y
 conda install -c anaconda h5py pyyaml -y
-pip install tensorboardx
+pip install tensorboardX open3d
+conda install sharedarray tensorboard tensorboardx yapf addict einops scipy plyfile termcolor timm -c conda-forge -y
+conda install pytorch-cluster pytorch-scatter pytorch-sparse -c pyg -y
+pip install torch-geometric
 
 # clone this repository in your own workspace
-git clone https://github.com/Dawson-Ma/BAM-PT.git
+git clone https://github.com/Dawson-Ma/BAM-PT.git --recursive
 cd BAM-PT
-mkdir data && ln -s Yourpath/IntrA data/IntrA
+mkdir data && ln -s /3d_data/datasets/IntrA data/IntrA
 
 # compile cuda operations
 cd point_transformer_lib
-python3 setup.py build_exit install
+python3 setup.py build_ext install
+
+cd ../../PointTransformerV3/Pointcept/libs
+pip install pointops/
+
+pip install spconv-cu118
+pip install flash-attn --no-build-isolation
+
 ```
 
 ## Training and Validation
